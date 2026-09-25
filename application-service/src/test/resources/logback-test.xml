@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Mirrors logback-spring.xml so the PII masking is exercised under test (Spring Boot only reads
+     logback-spring.xml when its logging system starts; plain unit tests load logback-test.xml). -->
+<configuration>
+    <conversionRule conversionWord="mask"
+                    converterClass="com.parallax.application.pii.PiiMaskingConverter"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %mask(%msg)%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>

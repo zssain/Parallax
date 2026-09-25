@@ -1,6 +1,40 @@
 server:
   port: 8080
 
+spring:
+  application:
+    name: application-service
+  # Runtime connects as the least-privilege role parallax_app (INSERT/SELECT/UPDATE per grants).
+  datasource:
+    url: jdbc:postgresql://localhost:5432/parallax
+    username: parallax_app
+    password: ${PARALLAX_APP_PASSWORD:app-dev}
+  # Flyway migrates as the schema owner parallax_owner; every migration ends with explicit grants.
+  flyway:
+    url: jdbc:postgresql://localhost:5432/parallax
+    user: parallax_owner
+    password: ${PARALLAX_OWNER_PASSWORD:owner-dev}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+# PII keys are read from the environment first (PARALLAX_DATA_KEY, PARALLAX_TOKEN_KEY via relaxed
+# binding). Left blank here: a non-dev profile with no env key fails fast at startup (see DataCipher).
+parallax:
+  data-key: ${PARALLAX_DATA_KEY:}
+  token-key: ${PARALLAX_TOKEN_KEY:}
+
+# Swagger is exposed only in the dev profile (see application-dev.yml and SecurityConfig).
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
 management:
   endpoints:
     web:

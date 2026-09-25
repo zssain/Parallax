@@ -1,0 +1,34 @@
+# Dev profile: demo users, dev PII keys and Swagger. Never use these values outside a dev machine.
+parallax:
+  # Two random 32-byte keys generated once with `openssl rand -base64 32`.
+  # DEV ONLY — never use in production.
+  data-key: ${PARALLAX_DATA_KEY:r7lS6KGA7fhaEF3Kk+cKcYYQ5KwI2h1xsEygj5d75hI=}
+  token-key: ${PARALLAX_TOKEN_KEY:66yaR1D+9P3aLbna07mB/YKF0HsXxtud36b8LHwC7hM=}
+  # Demo users (SPEC §9). Username = email. Password from DEMO_PASSWORD (default demo-password),
+  # except the assistant, which uses ASSISTANT_PASSWORD (default assistant-dev).
+  users:
+    - username: aditi.rao@parallax.dev
+      display-name: Aditi Rao
+      role: STRATEGIST
+    - username: vikram.nair@parallax.dev
+      display-name: Vikram Nair
+      role: APPROVER
+    - username: priya.menon@parallax.dev
+      display-name: Priya Menon
+      role: UNDERWRITER
+    - username: sam.iyer@parallax.dev
+      display-name: Sam Iyer
+      role: AUDITOR
+    - username: client@parallax.dev
+      display-name: Demo Client
+      role: CLIENT
+    - username: assistant@parallax.dev
+      display-name: Parallax Assistant
+      role: ASSISTANT
+      password-env: ASSISTANT_PASSWORD
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
