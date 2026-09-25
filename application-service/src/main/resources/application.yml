@@ -31,6 +31,34 @@ parallax:
   decision:
     url: ${PARALLAX_DECISION_URL:http://localhost:8081}
   internal-token: ${INTERNAL_TOKEN:internal-dev}
+  # Scheduled recovery jobs (SPEC §6; Prompt 10).
+  jobs:
+    redecision-ms: ${PARALLAX_JOBS_REDECISION_MS:60000}
+    engine-retry-ms: ${PARALLAX_JOBS_ENGINE_RETRY_MS:60000}
+
+# Resilience around the bureau (circuit breaker) and decision engine (retry) — SPEC §3, Prompt 10.
+resilience4j:
+  circuitbreaker:
+    instances:
+      bureau:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        slowCallDurationThreshold: 2s
+        slowCallRateThreshold: 50
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+  retry:
+    instances:
+      decision:
+        maxAttempts: 3
+        waitDuration: 200ms
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+        retryExceptions:
+          - com.parallax.application.decision.DecisionUnavailableException
 
 # Swagger is exposed only in the dev profile (see application-dev.yml and SecurityConfig).
 springdoc:

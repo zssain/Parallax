@@ -92,6 +92,11 @@ public class DecisionCommitService {
                 "UPDATE rule_version SET first_used_at = ? WHERE version = ? AND first_used_at IS NULL",
                 Timestamp.from(Instant.now(clock)), response.ruleVersion());
 
+        // The scheduled re-decision/retry jobs run without a request: no pipeline, no idempotency key.
+        if (!requestActive()) {
+            return null;
+        }
+
         pipeline.recordMs(PipelineStep.LEDGER_COMMIT, PipelineStatus.OK,
                 elapsedMs(commitStartNanos), "seq #" + row.seq());
 
@@ -104,6 +109,28 @@ public class DecisionCommitService {
                 response.ruleVersion(), row.seq(), row.createdAt(),
                 new DecideResponse.BureauView(report.pullId(), report.reused()), pipeline.items());
         return complete(clientKey, app, body);
+    }
+
+    /** SPEC §3 7c: engine unavailable after retries → ENGINE_PENDING, engine_attempts=1, 202 body, one transaction. */
+    @Transactional
+    public String commitEnginePending(ApplicationEntity app, ClientKey clientKey, long commitStartNanos) {
+        app.setEngineAttempts(1);
+        app.changeStatus(ApplicationStatus.ENGINE_PENDING);
+        app.setUpdatedAt(Instant.now(clock).truncatedTo(ChronoUnit.MICROS));
+        applicationRepository.save(app);
+
+        EnginePendingResponse body = new EnginePendingResponse(app.getPublicId(),
+                ApplicationStatus.ENGINE_PENDING.name(), pipeline.items());
+        String json = write(body);
+        if (clientKey != null) {
+            idempotency.completeInCurrentTransaction(clientKey.clientId(), clientKey.idemKey(), 202, json,
+                    app.getPublicId());
+        }
+        return json;
+    }
+
+    private boolean requestActive() {
+        return org.springframework.web.context.request.RequestContextHolder.getRequestAttributes() != null;
     }
 
     /** SPEC §3 7b: bureau-unavailable REFER/B01 row; status stays BUREAU_UNAVAILABLE. */
@@ -148,7 +175,7 @@ public class DecisionCommitService {
         return Math.max(0, (System.nanoTime() - sinceNanos) / 1_000_000);
     }
 
-    private String write(DecideResponse body) {
+    private String write(Object body) {
         try {
             return objectMapper.writeValueAsString(body);
         } catch (Exception e) {

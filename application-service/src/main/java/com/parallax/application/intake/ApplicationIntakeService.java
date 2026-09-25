@@ -10,7 +10,6 @@ import com.parallax.application.decision.DecisionUnavailableException;
 import com.parallax.application.domain.ApplicationEntity;
 import com.parallax.application.domain.ApplicationRepository;
 import com.parallax.application.domain.ApplicationStatus;
-import com.parallax.application.error.ApiProblem;
 import com.parallax.application.feature.DerivedFeatures;
 import com.parallax.application.feature.EngineInputMapper;
 import com.parallax.application.feature.FeatureService;
@@ -31,7 +30,7 @@ import com.parallax.engine.api.EvaluateResponse;
 import com.parallax.engine.model.Decision;
 import com.parallax.engine.model.EngineInput;
 import com.parallax.engine.model.PullType;
-import org.springframework.http.HttpStatus;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -104,15 +103,10 @@ public class ApplicationIntakeService {
             BureauReport report;
             try {
                 report = bureauService.pullFor(application, request);
+            } catch (CallNotPermittedException circuitOpen) {
+                return bureauUnavailable(application, request, clientKey, live.version(), bureauStart, "circuit OPEN");
             } catch (BureauUnavailableException unavailable) {
-                pipeline.record(PipelineStep.BUREAU, PipelineStatus.WARN, bureauStart, "bureau unavailable");
-                pipeline.skip(PipelineStep.FRAUD_SCREEN, null);
-                pipeline.skip(PipelineStep.ENGINE, null);
-                transition(application, ApplicationStatus.BUREAU_UNAVAILABLE);
-                long commitStart = System.nanoTime();
-                String body = commitService.commitBureauUnavailable(application,
-                        partialInput(application, request), clientKey, commitStart, live.version());
-                return new IntakeOutcome(201, body, false);
+                return bureauUnavailable(application, request, clientKey, live.version(), bureauStart, "bureau unavailable");
             }
             pipeline.record(PipelineStep.BUREAU, PipelineStatus.OK, bureauStart,
                     report.reused() ? "report reused (window " + bureauService.reuseDays() + " d)" : "fresh pull");
@@ -128,9 +122,13 @@ public class ApplicationIntakeService {
             try {
                 response = decisionClient.evaluate(new EvaluateRequest(live.version(), live.config(), input));
             } catch (DecisionUnavailableException unavailable) {
-                // PX-10: replace with the ENGINE_PENDING path and a 202 retry response.
-                throw new ApiProblem(HttpStatus.SERVICE_UNAVAILABLE, "Decision engine unavailable",
-                        "The decision engine is temporarily unavailable; please retry");
+                // SPEC §3 7c: engine unavailable after retries → ENGINE_PENDING, 202, queued for the retry job.
+                pipeline.recordMs(PipelineStep.FRAUD_SCREEN, PipelineStatus.OK, fraudMs, "");
+                pipeline.recordMs(PipelineStep.ENGINE, "Decision engine · " + live.version(),
+                        PipelineStatus.WARN, elapsedMs(engineStart), "engine unavailable, queued for retry");
+                pipeline.skip(PipelineStep.LEDGER_COMMIT, null);
+                String body = commitService.commitEnginePending(application, clientKey, System.nanoTime());
+                return new IntakeOutcome(202, body, false);
             }
             long engineMs = elapsedMs(engineStart);
 
@@ -188,6 +186,18 @@ public class ApplicationIntakeService {
         return application;
     }
 
+    private IntakeOutcome bureauUnavailable(ApplicationEntity application, ApplicationRequest request,
+                                            ClientKey clientKey, String liveVersion, long bureauStart,
+                                            String detail) {
+        pipeline.record(PipelineStep.BUREAU, PipelineStatus.WARN, bureauStart, detail);
+        pipeline.skip(PipelineStep.FRAUD_SCREEN, null);
+        pipeline.skip(PipelineStep.ENGINE, null);
+        transition(application, ApplicationStatus.BUREAU_UNAVAILABLE);
+        String body = commitService.commitBureauUnavailable(application, partialInput(application, request),
+                clientKey, System.nanoTime(), liveVersion);
+        return new IntakeOutcome(201, body, false);
+    }
+
     private PartialEngineInput partialInput(ApplicationEntity application, ApplicationRequest request) {
         LocalDate dob = request.dateOfBirth();
         LocalDate asOf = application.getCreatedAt().atZone(ZoneOffset.UTC).toLocalDate();
@@ -203,8 +213,9 @@ public class ApplicationIntakeService {
         applicationRepository.save(application);
     }
 
+    /** A created (201) decision replays as 200; other statuses (202 ENGINE_PENDING) replay unchanged (SPEC §7). */
     private int replayStatus(int storedStatus) {
-        return (storedStatus == 201 || storedStatus == 202) ? 200 : storedStatus;
+        return storedStatus == 201 ? 200 : storedStatus;
     }
 
     private long elapsedMs(long sinceNanos) {

@@ -57,7 +57,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 @AutoConfigureMockMvc
 public abstract class AbstractIntakeIT extends AbstractPostgresIT {
 
-    static final WireMockServer BUREAU = new WireMockServer(options().dynamicPort());
+    protected static final WireMockServer BUREAU = new WireMockServer(options().dynamicPort());
 
     static {
         BUREAU.start();
@@ -75,6 +75,9 @@ public abstract class AbstractIntakeIT extends AbstractPostgresIT {
     @MockitoBean
     protected DecisionClient decisionClient;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    protected com.parallax.application.bureau.BureauCircuitControl bureauCircuit;
+
     @DynamicPropertySource
     static void bureauProperties(DynamicPropertyRegistry registry) {
         registry.add("parallax.bureau.url", () -> "http://localhost:" + BUREAU.port() + "/ws");
@@ -83,16 +86,29 @@ public abstract class AbstractIntakeIT extends AbstractPostgresIT {
     @BeforeEach
     void resetBureauAndDatabase() throws Exception {
         BUREAU.resetAll();
-        Mockito.when(decisionClient.evaluate(Mockito.any())).thenAnswer(invocation -> {
-            EvaluateRequest request = invocation.getArgument(0);
-            Decision decision = DecisionEngine.evaluate(request.input(), request.config());
-            return new EvaluateResponse(request.ruleVersion(), EngineVersion.VALUE, ScorecardVersion.VALUE, decision);
-        });
+        bureauCircuit.close(); // reset the shared circuit breaker between tests
+        stubDecisionEngineInProcess();
         String url = "jdbc:postgresql://" + POSTGRES.getHost() + ":" + POSTGRES.getMappedPort(5432) + "/parallax";
         try (Connection c = DriverManager.getConnection(url, "parallax_owner", "owner-dev");
              Statement s = c.createStatement()) {
             s.execute("TRUNCATE decision_ledger, application, bureau_pull, idempotency_key RESTART IDENTITY CASCADE");
         }
+    }
+
+    /** Make the mock DecisionClient run the real engine in-process (the default; also used to "heal"). */
+    protected void stubDecisionEngineInProcess() {
+        // doAnswer (not when/thenAnswer) so re-stubbing does not re-invoke the current answer.
+        Mockito.doAnswer(invocation -> {
+            EvaluateRequest request = invocation.getArgument(0);
+            Decision decision = DecisionEngine.evaluate(request.input(), request.config());
+            return new EvaluateResponse(request.ruleVersion(), EngineVersion.VALUE, ScorecardVersion.VALUE, decision);
+        }).when(decisionClient).evaluate(Mockito.any());
+    }
+
+    /** Make the mock DecisionClient fail as if the engine is down. */
+    protected void stubDecisionEngineDown() {
+        Mockito.doThrow(new com.parallax.application.decision.DecisionUnavailableException("engine down", null))
+                .when(decisionClient).evaluate(Mockito.any());
     }
 
     // --- request helpers -------------------------------------------------------------------------

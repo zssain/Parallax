@@ -48,6 +48,9 @@ public abstract class AbstractPostgresIT {
         // Deterministic 32-byte test keys.
         registry.add("parallax.data-key", () -> TEST_DATA_KEY);
         registry.add("parallax.token-key", () -> TEST_TOKEN_KEY);
+        // Push scheduled job triggers far out so tests drive runOnce() deterministically.
+        registry.add("parallax.jobs.redecision-ms", () -> "3600000");
+        registry.add("parallax.jobs.engine-retry-ms", () -> "3600000");
     }
 
     private static byte[] filled(byte value) {

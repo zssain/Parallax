@@ -2,6 +2,7 @@ package com.parallax.application.bureau;
 
 import com.parallax.bureau.contract.CreditReportRequest;
 import com.parallax.bureau.contract.CreditReportResponse;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.Marshaller;
 import org.springframework.stereotype.Component;
@@ -26,6 +27,7 @@ public class BureauClient {
     }
 
     /** Send the SOAP request and return the response, wrapping any failure as {@link BureauUnavailableException}. */
+    @CircuitBreaker(name = "bureau")
     public CreditReportResponse pull(CreditReportRequest request) {
         try {
             return (CreditReportResponse) webServiceTemplate.marshalSendAndReceive(request);
