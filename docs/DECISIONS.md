@@ -24,3 +24,6 @@ Each entry is one line: `YYYY-MM-DD · P<nn> · decision · reason`.
 2026-09-26 · P03 · RuleConfigValidator negative-point and sum-of-maxima checks run regardless of array length; only ordering checks are skipped on a wrong length · SPEC only requires skipping ordering to avoid index errors
 2026-09-26 · P03 · ban-frameworks enforcer bans org.springframework*/jakarta.*/com.fasterxml.jackson* on compile+runtime scope only · keeps archunit/jqwik/junit on the test classpath while blocking runtime frameworks
 2026-09-26 · P03 · Removed parallax-engine EnginePlaceholderTest · superseded by real engine tests (ReasonCodeTest, EngineInputTest, UsdTest, RuleConfigsTest, RuleConfigValidatorTest, PurityArchTest)
+2026-09-26 · P04 · Property "reasonCodes empty iff APPROVED" asserted as APPROVED⇒empty plus "empty & not-APPROVED ⇒ fraud REFER" · the one SPEC corner is a perfect 850 score referred by a fraud flag, which has no failed policy and no lost points (documented by a dedicated example test)
+2026-09-26 · P04 · Added parallax-engine/src/test/resources/junit-platform.properties (jqwik.tries.default=1000, jqwik.reporting.onlyFailures=false) · surfaces the per-property tries/checks summary in build output
+2026-09-26 · P04 · Added SegmentsTest covering scoreBand boundaries · Segments is new production code introduced this prompt and deserves a boundary test
