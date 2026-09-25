@@ -1,0 +1,6 @@
+# Dev profile: activates the fault-injection beans (FaultController at /admin/fault and
+# BureauFaultFilter on /ws/*). The default profile does not expose /admin.
+spring:
+  config:
+    activate:
+      on-profile: dev

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:br="urn:parallax:bureau:v1"
+           targetNamespace="urn:parallax:bureau:v1"
+           elementFormDefault="qualified">
+
+    <!-- Credit bureau contract (SPEC §8). Element names match the prototype's Decision detail screen. -->
+
+    <xs:simpleType name="PullTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="HARD"/>
+            <xs:enumeration value="SOFT"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:element name="CreditReportRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="Ssn">
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:pattern value="9[0-9]{8}"/>
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:element>
+                <xs:element name="FirstName">
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:minLength value="1"/>
+                            <xs:maxLength value="60"/>
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:element>
+                <xs:element name="LastName">
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:minLength value="1"/>
+                            <xs:maxLength value="60"/>
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:element>
+                <xs:element name="DateOfBirth" type="xs:date"/>
+                <xs:element name="Address">
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:minLength value="1"/>
+                            <xs:maxLength value="200"/>
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:element>
+                <xs:element name="PullType" type="br:PullTypeEnum"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="CreditReportResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="PullId" type="xs:string"/>
+                <xs:element name="PullType" type="br:PullTypeEnum"/>
+                <xs:element name="FileAddress" type="xs:string"/>
+                <xs:element name="SsnIssuanceYear" type="xs:int"/>
+                <xs:element name="DeceasedIndicator" type="xs:boolean"/>
+                <xs:element name="OpenTradelines" type="xs:int"/>
+                <xs:element name="Inquiries6M" type="xs:int"/>
+                <xs:element name="Delinquencies24M" type="xs:int"/>
+                <xs:element name="RevolvingUtilization">
+                    <xs:simpleType>
+                        <xs:restriction base="xs:decimal">
+                            <xs:fractionDigits value="3"/>
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:element>
+                <xs:element name="FileAgeMonths" type="xs:int"/>
+                <xs:element name="ProfileLabel" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+</xs:schema>

@@ -13,5 +13,47 @@
 
     <artifactId>bureau-contract</artifactId>
     <name>bureau-contract</name>
-    <description>SOAP bureau contract — XSD and generated JAXB classes (arrive in Prompt 05)</description>
+    <description>SOAP bureau contract — XSD and generated Jakarta XML Binding classes</description>
+
+    <properties>
+        <!-- newest 3.x on Maven Central; see docs/DECISIONS.md -->
+        <jaxb2-maven-plugin.version>3.3.0</jaxb2-maven-plugin.version>
+    </properties>
+
+    <dependencies>
+        <!-- Versions managed by Spring Boot's dependency management. -->
+        <dependency>
+            <groupId>jakarta.xml.bind</groupId>
+            <artifactId>jakarta.xml.bind-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.jaxb</groupId>
+            <artifactId>jaxb-runtime</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>jaxb2-maven-plugin</artifactId>
+                <version>${jaxb2-maven-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>xjc</id>
+                        <goals>
+                            <goal>xjc</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <packageName>com.parallax.bureau.contract</packageName>
+                    <sources>
+                        <source>src/main/resources/xsd/bureau.xsd</source>
+                    </sources>
+                    <clearOutputDir>false</clearOutputDir>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
