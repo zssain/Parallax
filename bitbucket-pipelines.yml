@@ -1,0 +1,18 @@
+image: maven:3.9-eclipse-temurin-21
+
+definitions:
+  services:
+    docker:
+      memory: 2048
+
+pipelines:
+  default:
+    - step:
+        name: Build and verify
+        caches:
+          - maven
+        services:
+          - docker
+        script:
+          - export TESTCONTAINERS_RYUK_DISABLED=true
+          - ./mvnw -B verify

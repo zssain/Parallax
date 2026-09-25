@@ -1,0 +1,26 @@
+services:
+  postgres:
+    image: postgres:16
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-parallax-dev}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # --- Services below are added in later prompts; kept here as placeholders ---
+  # bureau-mock:          # port 8082 (Prompt 05+)
+  # decision-service:     # port 8081 (Prompt 06+)
+  # application-service:  # port 8080 (Prompt 06+)
+  # assistant-service:    # port 8083 (Prompt 16+)
+  # account-service:      # port 8084 (Prompt 19)
+  # web:                  # port 5173 (Prompt 20)
+
+volumes:
+  pgdata:
