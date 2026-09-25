@@ -1,0 +1,45 @@
+{
+  "ruleVersion": "v1.3",
+  "config": {
+    "approveCutoff": 680,
+    "referCutoff": 620,
+    "minPayPct": 0.03,
+    "atpShare": 0.35,
+    "livingCost": 1200,
+    "minLimit": 300,
+    "bandLimits": [
+      { "minScore": 800, "limit": 12000 },
+      { "minScore": 760, "limit": 7500 },
+      { "minScore": 720, "limit": 4000 },
+      { "minScore": 680, "limit": 2000 },
+      { "minScore": 0, "limit": 1000 }
+    ],
+    "utilPts": [130, 115, 85, 45, 10],
+    "inqPts": [90, 70, 35, 5],
+    "delqPts": [140, 60, 10],
+    "tradelinePts": [20, 55, 70, 60],
+    "fileAgePts": [15, 40, 60, 70],
+    "incomePts": [10, 25, 40, 50],
+    "ccf": 0.6,
+    "lgd": 0.9
+  },
+  "input": {
+    "age": 30,
+    "birthYear": 1996,
+    "annualIncome": 64000,
+    "monthlyHousing": 1350,
+    "monthlyDebt": 280,
+    "revolvingUtilization": 0.08,
+    "inquiries6m": 0,
+    "delinquencies24m": 0,
+    "openTradelines": 12,
+    "fileAgeMonths": 156,
+    "independentIncome": true,
+    "bureauConsent": true,
+    "addressMismatch": false,
+    "ssnIssuanceYear": 1997,
+    "deceased": false,
+    "velocity24h": 1,
+    "pullType": "HARD"
+  }
+}

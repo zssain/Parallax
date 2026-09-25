@@ -1,6 +1,10 @@
 server:
   port: 8081
 
+# Service-to-service token for /internal/v1 (SPEC §2). Read from env INTERNAL_TOKEN first.
+parallax:
+  internal-token: ${INTERNAL_TOKEN:internal-dev}
+
 management:
   endpoints:
     web:
