@@ -1,6 +1,5 @@
 package com.parallax.application.intake;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -20,15 +19,14 @@ class IntakeVelocityIT extends AbstractIntakeIT {
             stubBureau(ssn, primeResponse("BP-" + ssn, "48 Elm Street, Columbus OH"));
         }
 
-        JsonNode last = null;
         for (String ssn : ssns) {
             Map<String, Object> body = defaultRequest();
             body.put("ssn", ssn);
             body.put("phone", phone);
-            last = read(submit(USER, newKey(), body).andExpect(status().isAccepted()).andReturn());
+            submit(USER, newKey(), body).andExpect(status().isCreated());
         }
 
-        assertThat(last.get("engineInputPreview").get("velocity24h").asInt()).isEqualTo(3);
+        assertThat(latestLedgerVelocity()).isEqualTo(3);
     }
 
     @Test
@@ -38,13 +36,18 @@ class IntakeVelocityIT extends AbstractIntakeIT {
             stubBureau(ssn, primeResponse("BP-" + ssn, "48 Elm Street, Columbus OH"));
         }
 
-        JsonNode last = null;
         for (String ssn : ssns) {
             Map<String, Object> body = defaultRequest();
             body.put("ssn", ssn); // no email, no phone
-            last = read(submit(USER, newKey(), body).andExpect(status().isAccepted()).andReturn());
+            submit(USER, newKey(), body).andExpect(status().isCreated());
         }
 
-        assertThat(last.get("engineInputPreview").get("velocity24h").asInt()).isEqualTo(1);
+        assertThat(latestLedgerVelocity()).isEqualTo(1);
+    }
+
+    private int latestLedgerVelocity() {
+        return jdbc.queryForObject(
+                "SELECT (engine_input->>'velocity24h')::int FROM decision_ledger ORDER BY seq DESC LIMIT 1",
+                Integer.class);
     }
 }

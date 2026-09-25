@@ -27,7 +27,7 @@ class IntakeIdempotencyIT extends AbstractIntakeIT {
         Map<String, Object> body = defaultRequest();
 
         String firstBody = submit(USER, key, body)
-                .andExpect(status().isAccepted())
+                .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
 
         String replayBody = submit(USER, key, body)
@@ -44,7 +44,7 @@ class IntakeIdempotencyIT extends AbstractIntakeIT {
     void sameKeyDifferentBodyIsRejected() throws Exception {
         stubBureau(SSN, primeResponse("BP-DIFF", "48 Elm Street, Columbus OH"));
         String key = newKey();
-        submit(USER, key, defaultRequest()).andExpect(status().isAccepted());
+        submit(USER, key, defaultRequest()).andExpect(status().isCreated());
 
         Map<String, Object> different = defaultRequest();
         different.put("annualIncome", 70000);
@@ -71,7 +71,7 @@ class IntakeIdempotencyIT extends AbstractIntakeIT {
             ready.await(5, TimeUnit.SECONDS);
             go.countDown();
             List<Integer> statuses = List.of(a.get(15, TimeUnit.SECONDS), b.get(15, TimeUnit.SECONDS));
-            assertThat(statuses).containsExactlyInAnyOrder(202, 409);
+            assertThat(statuses).containsExactlyInAnyOrder(201, 409);
         } finally {
             pool.shutdownNow();
         }

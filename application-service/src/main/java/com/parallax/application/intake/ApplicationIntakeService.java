@@ -1,35 +1,50 @@
 package com.parallax.application.intake;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.parallax.application.bureau.BureauReport;
 import com.parallax.application.bureau.BureauService;
 import com.parallax.application.bureau.BureauUnavailableException;
+import com.parallax.application.decision.ClientKey;
+import com.parallax.application.decision.DecisionClient;
+import com.parallax.application.decision.DecisionCommitService;
+import com.parallax.application.decision.DecisionUnavailableException;
 import com.parallax.application.domain.ApplicationEntity;
 import com.parallax.application.domain.ApplicationRepository;
 import com.parallax.application.domain.ApplicationStatus;
+import com.parallax.application.error.ApiProblem;
 import com.parallax.application.feature.DerivedFeatures;
 import com.parallax.application.feature.EngineInputMapper;
 import com.parallax.application.feature.FeatureService;
 import com.parallax.application.idempotency.IdempotencyService;
 import com.parallax.application.idempotency.Replay;
 import com.parallax.application.json.CanonicalJson;
+import com.parallax.application.ledger.LedgerKind;
+import com.parallax.application.ledger.PartialEngineInput;
 import com.parallax.application.pii.NameMasker;
 import com.parallax.application.pii.Tokenizer;
 import com.parallax.application.pipeline.PipelineRecorder;
 import com.parallax.application.pipeline.PipelineStatus;
 import com.parallax.application.pipeline.PipelineStep;
+import com.parallax.application.rules.LiveRule;
+import com.parallax.application.rules.LiveRuleService;
+import com.parallax.engine.api.EvaluateRequest;
+import com.parallax.engine.api.EvaluateResponse;
+import com.parallax.engine.model.Decision;
 import com.parallax.engine.model.EngineInput;
+import com.parallax.engine.model.PullType;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.Period;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
 /**
- * Orchestrates intake through a ready {@link EngineInput} (SPEC §3 steps 1–5). Stops at BUREAU_PULLED;
- * Prompt 08 adds the ledger and Prompt 09 the decision. Idempotency begin/complete/abandon run in
- * their own transactions; this method's transaction covers the application and bureau_pull rows.
+ * Orchestrates the live decision flow (SPEC §3): idempotency, intake, bureau, features, decision and
+ * a one-transaction commit that returns the final 201. Bureau failure degrades to a B01 REFER (7b);
+ * an engine failure abandons the key and returns 503 for now (Prompt 10 adds the ENGINE_PENDING path).
  */
 @Service
 public class ApplicationIntakeService {
@@ -39,30 +54,34 @@ public class ApplicationIntakeService {
     private final BureauService bureauService;
     private final FeatureService featureService;
     private final EngineInputMapper engineInputMapper;
+    private final LiveRuleService liveRuleService;
+    private final DecisionClient decisionClient;
+    private final DecisionCommitService commitService;
     private final PipelineRecorder pipeline;
     private final IntakeFailurePoint failurePoint;
     private final CanonicalJson canonicalJson;
     private final Tokenizer tokenizer;
-    private final ObjectMapper objectMapper;
 
     public ApplicationIntakeService(IdempotencyService idempotency, ApplicationRepository applicationRepository,
                                     BureauService bureauService, FeatureService featureService,
-                                    EngineInputMapper engineInputMapper, PipelineRecorder pipeline,
-                                    IntakeFailurePoint failurePoint, CanonicalJson canonicalJson,
-                                    Tokenizer tokenizer, ObjectMapper objectMapper) {
+                                    EngineInputMapper engineInputMapper, LiveRuleService liveRuleService,
+                                    DecisionClient decisionClient, DecisionCommitService commitService,
+                                    PipelineRecorder pipeline, IntakeFailurePoint failurePoint,
+                                    CanonicalJson canonicalJson, Tokenizer tokenizer) {
         this.idempotency = idempotency;
         this.applicationRepository = applicationRepository;
         this.bureauService = bureauService;
         this.featureService = featureService;
         this.engineInputMapper = engineInputMapper;
+        this.liveRuleService = liveRuleService;
+        this.decisionClient = decisionClient;
+        this.commitService = commitService;
         this.pipeline = pipeline;
         this.failurePoint = failurePoint;
         this.canonicalJson = canonicalJson;
         this.tokenizer = tokenizer;
-        this.objectMapper = objectMapper;
     }
 
-    @Transactional
     public IntakeOutcome intake(String clientId, String idemKey, ApplicationRequest request) {
         String requestHash = canonicalJson.sha256Hex(canonicalJson.write(request));
 
@@ -77,7 +96,9 @@ public class ApplicationIntakeService {
         try {
             failurePoint.afterKeyInsert();
 
-            ApplicationEntity application = save(buildReceived(clientId, request));
+            ApplicationEntity application = applicationRepository.save(buildReceived(clientId, request));
+            ClientKey clientKey = new ClientKey(clientId, idemKey);
+            LiveRule live = liveRuleService.current();
 
             long bureauStart = System.nanoTime();
             BureauReport report;
@@ -86,9 +107,12 @@ public class ApplicationIntakeService {
             } catch (BureauUnavailableException unavailable) {
                 pipeline.record(PipelineStep.BUREAU, PipelineStatus.WARN, bureauStart, "bureau unavailable");
                 pipeline.skip(PipelineStep.FRAUD_SCREEN, null);
+                pipeline.skip(PipelineStep.ENGINE, null);
                 transition(application, ApplicationStatus.BUREAU_UNAVAILABLE);
-                return complete(clientId, idemKey, application.getPublicId(),
-                        ApplicationStatus.BUREAU_UNAVAILABLE.name(), null);
+                long commitStart = System.nanoTime();
+                String body = commitService.commitBureauUnavailable(application,
+                        partialInput(application, request), clientKey, commitStart, live.version());
+                return new IntakeOutcome(201, body, false);
             }
             pipeline.record(PipelineStep.BUREAU, PipelineStatus.OK, bureauStart,
                     report.reused() ? "report reused (window " + bureauService.reuseDays() + " d)" : "fresh pull");
@@ -96,23 +120,35 @@ public class ApplicationIntakeService {
 
             long fraudStart = System.nanoTime();
             DerivedFeatures features = featureService.derive(application, request, report);
-            EngineInput engineInput = engineInputMapper.toEngineInput(application, report, features);
-            pipeline.record(PipelineStep.FRAUD_SCREEN, PipelineStatus.OK, fraudStart, ""); // PX-9: detail
+            EngineInput input = engineInputMapper.toEngineInput(application, report, features);
+            long fraudMs = elapsedMs(fraudStart);
 
-            return complete(clientId, idemKey, application.getPublicId(),
-                    ApplicationStatus.BUREAU_PULLED.name(), engineInput);
+            long engineStart = System.nanoTime();
+            EvaluateResponse response;
+            try {
+                response = decisionClient.evaluate(new EvaluateRequest(live.version(), live.config(), input));
+            } catch (DecisionUnavailableException unavailable) {
+                // PX-10: replace with the ENGINE_PENDING path and a 202 retry response.
+                throw new ApiProblem(HttpStatus.SERVICE_UNAVAILABLE, "Decision engine unavailable",
+                        "The decision engine is temporarily unavailable; please retry");
+            }
+            long engineMs = elapsedMs(engineStart);
+
+            Decision decision = response.decision();
+            boolean hasFraud = !decision.fraudFlags().isEmpty();
+            pipeline.recordMs(PipelineStep.FRAUD_SCREEN, hasFraud ? PipelineStatus.WARN : PipelineStatus.OK,
+                    fraudMs, hasFraud ? decision.fraudFlags().size() + " flag(s)" : "");
+            pipeline.recordMs(PipelineStep.ENGINE, "Decision engine · " + live.version(),
+                    PipelineStatus.OK, engineMs, "");
+
+            long commitStart = System.nanoTime();
+            String body = commitService.commitDecision(application, input, report, response,
+                    LedgerKind.DECISION, null, clientKey, commitStart);
+            return new IntakeOutcome(201, body, false);
         } catch (RuntimeException e) {
             idempotency.abandon(clientId, idemKey);
             throw e;
         }
-    }
-
-    private IntakeOutcome complete(String clientId, String idemKey, String applicationId,
-                                   String status, EngineInput engineInputPreview) {
-        IntakeResponse response = new IntakeResponse(applicationId, status, pipeline.items(), engineInputPreview);
-        String body = writeJson(response);
-        idempotency.complete(clientId, idemKey, 202, body, applicationId);
-        return new IntakeOutcome(202, body, false);
     }
 
     private ApplicationEntity buildReceived(String clientId, ApplicationRequest request) {
@@ -152,9 +188,13 @@ public class ApplicationIntakeService {
         return application;
     }
 
-    private ApplicationEntity save(ApplicationEntity application) {
-        // IDENTITY generation inserts immediately, so the row is visible to the velocity query.
-        return applicationRepository.save(application);
+    private PartialEngineInput partialInput(ApplicationEntity application, ApplicationRequest request) {
+        LocalDate dob = request.dateOfBirth();
+        LocalDate asOf = application.getCreatedAt().atZone(ZoneOffset.UTC).toLocalDate();
+        int age = Period.between(dob, asOf).getYears();
+        return PartialEngineInput.unavailable(age, dob.getYear(), application.getAnnualIncome(),
+                application.getMonthlyHousing(), application.getMonthlyDebt(),
+                application.isIndependentIncome(), application.isBureauConsent(), PullType.HARD);
     }
 
     private void transition(ApplicationEntity application, ApplicationStatus to) {
@@ -163,16 +203,11 @@ public class ApplicationIntakeService {
         applicationRepository.save(application);
     }
 
-    /** A successful-creation replay (201/202) becomes 200; other statuses replay as stored (SPEC §7). */
     private int replayStatus(int storedStatus) {
         return (storedStatus == 201 || storedStatus == 202) ? 200 : storedStatus;
     }
 
-    private String writeJson(IntakeResponse response) {
-        try {
-            return objectMapper.writeValueAsString(response);
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to serialize intake response", e);
-        }
+    private long elapsedMs(long sinceNanos) {
+        return Math.max(0, (System.nanoTime() - sinceNanos) / 1_000_000);
     }
 }

@@ -91,11 +91,12 @@ public class IdempotencyService {
     }
 
     /**
-     * Store the final response against the key. Runs in its own transaction for now.
+     * Store the final response against the key inside the caller's (decision) transaction, so the
+     * ledger row and the completed key commit together (SPEC §3, §7).
      */
-    // PX-9: move into decision transaction
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void complete(String clientId, String key, int status, String body, String applicationPublicId) {
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void completeInCurrentTransaction(String clientId, String key, int status, String body,
+                                             String applicationPublicId) {
         IdempotencyKeyEntity entity = repository.findById(new IdempotencyKeyId(clientId, key))
                 .orElseThrow(() -> new IllegalStateException("Idempotency key missing on complete: " + key));
         entity.markCompleted(status, body, applicationPublicId);

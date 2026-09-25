@@ -5,8 +5,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.parallax.application.AbstractPostgresIT;
+import com.parallax.application.decision.DecisionClient;
 import com.parallax.bureau.contract.CreditReportResponse;
 import com.parallax.bureau.contract.PullTypeEnum;
+import com.parallax.engine.api.EvaluateRequest;
+import com.parallax.engine.api.EvaluateResponse;
+import com.parallax.engine.model.Decision;
+import com.parallax.engine.model.EngineVersion;
+import com.parallax.engine.model.ScorecardVersion;
+import com.parallax.engine.scoring.DecisionEngine;
+import org.mockito.Mockito;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.Marshaller;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,6 +46,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 /**
@@ -61,6 +71,10 @@ public abstract class AbstractIntakeIT extends AbstractPostgresIT {
     @Autowired
     protected JdbcTemplate jdbc;
 
+    /** The decision engine is called in-process in tests, so ITs need no running decision-service. */
+    @MockitoBean
+    protected DecisionClient decisionClient;
+
     @DynamicPropertySource
     static void bureauProperties(DynamicPropertyRegistry registry) {
         registry.add("parallax.bureau.url", () -> "http://localhost:" + BUREAU.port() + "/ws");
@@ -69,10 +83,15 @@ public abstract class AbstractIntakeIT extends AbstractPostgresIT {
     @BeforeEach
     void resetBureauAndDatabase() throws Exception {
         BUREAU.resetAll();
+        Mockito.when(decisionClient.evaluate(Mockito.any())).thenAnswer(invocation -> {
+            EvaluateRequest request = invocation.getArgument(0);
+            Decision decision = DecisionEngine.evaluate(request.input(), request.config());
+            return new EvaluateResponse(request.ruleVersion(), EngineVersion.VALUE, ScorecardVersion.VALUE, decision);
+        });
         String url = "jdbc:postgresql://" + POSTGRES.getHost() + ":" + POSTGRES.getMappedPort(5432) + "/parallax";
         try (Connection c = DriverManager.getConnection(url, "parallax_owner", "owner-dev");
              Statement s = c.createStatement()) {
-            s.execute("TRUNCATE application, bureau_pull, idempotency_key RESTART IDENTITY CASCADE");
+            s.execute("TRUNCATE decision_ledger, application, bureau_pull, idempotency_key RESTART IDENTITY CASCADE");
         }
     }
 
@@ -144,6 +163,19 @@ public abstract class AbstractIntakeIT extends AbstractPostgresIT {
         return mvc.perform(request);
     }
 
+    protected ResultActions getAs(String username, String path) throws Exception {
+        return mvc.perform(get(path).with(httpBasic(username, "demo-password")));
+    }
+
+    protected ResultActions postAs(String username, String path) throws Exception {
+        return mvc.perform(post(path).with(httpBasic(username, "demo-password")));
+    }
+
+    /** Submit and return the decision response body as JSON. */
+    protected JsonNode decide(String username, Map<String, Object> body) throws Exception {
+        return read(submit(username, newKey(), body).andReturn());
+    }
+
     // --- bureau stub helpers ---------------------------------------------------------------------
 
     protected void stubBureau(String ssn, CreditReportResponse response) {
@@ -164,6 +196,30 @@ public abstract class AbstractIntakeIT extends AbstractPostgresIT {
 
     protected CreditReportResponse primeResponse(String pullId, String fileAddress) {
         return response(pullId, "PRIME", fileAddress, 12, 0, 0, "0.080", 156, 1997, false);
+    }
+
+    /** A bureau response derived from a synthetic SSN per SPEC §8 (profile + scenario). */
+    protected CreditReportResponse referenceResponse(String pullId, String ssn, String requestAddress,
+                                                     int birthYear) {
+        char profileDigit = ssn.charAt(1);
+        char scenarioDigit = ssn.charAt(2);
+        String profile = switch (profileDigit) {
+            case '3', '4', '5' -> "NEAR_PRIME";
+            case '6', '7' -> "SUBPRIME";
+            case '8' -> "THIN_FILE";
+            default -> "PRIME";
+        };
+        boolean mismatch = scenarioDigit == '7';
+        boolean beforeDob = scenarioDigit == '8';
+        boolean deceased = scenarioDigit == '9';
+        String fileAddress = mismatch ? "14 Old Mill Rd, Dayton OH" : requestAddress;
+        int ssnIssuanceYear = beforeDob ? birthYear - 3 : birthYear + 1;
+        return switch (profile) {
+            case "NEAR_PRIME" -> response(pullId, profile, fileAddress, 5, 3, 0, "0.550", 40, ssnIssuanceYear, deceased);
+            case "SUBPRIME" -> response(pullId, profile, fileAddress, 4, 5, 2, "0.820", 30, ssnIssuanceYear, deceased);
+            case "THIN_FILE" -> response(pullId, profile, fileAddress, 1, 1, 0, "0.200", 10, ssnIssuanceYear, deceased);
+            default -> response(pullId, profile, fileAddress, 12, 0, 0, "0.080", 156, ssnIssuanceYear, deceased);
+        };
     }
 
     protected CreditReportResponse response(String pullId, String profile, String fileAddress,

@@ -27,6 +27,10 @@ spring:
 parallax:
   data-key: ${PARALLAX_DATA_KEY:}
   token-key: ${PARALLAX_TOKEN_KEY:}
+  # Downstream services (SPEC §2).
+  decision:
+    url: ${PARALLAX_DECISION_URL:http://localhost:8081}
+  internal-token: ${INTERNAL_TOKEN:internal-dev}
 
 # Swagger is exposed only in the dev profile (see application-dev.yml and SecurityConfig).
 springdoc:

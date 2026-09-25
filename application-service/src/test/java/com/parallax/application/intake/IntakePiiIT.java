@@ -26,7 +26,7 @@ class IntakePiiIT extends AbstractIntakeIT {
 
         Map<String, Object> body = defaultRequest();
         body.put("email", email);
-        MvcResult result = submit(USER, newKey(), body).andExpect(status().isAccepted()).andReturn();
+        MvcResult result = submit(USER, newKey(), body).andExpect(status().isCreated()).andReturn();
         String applicationId = read(result).get("applicationId").asText();
 
         // Logs never carry PII (masking + never logging it in the first place).

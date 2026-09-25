@@ -33,6 +33,16 @@ public class PipelineRecorder {
         items.add(new PipelineItem(step.name(), step.label(), status.name(), ms, detail));
     }
 
+    /** Record a step with a pre-measured elapsed time (ms). */
+    public void recordMs(PipelineStep step, PipelineStatus status, long ms, String detail) {
+        items.add(new PipelineItem(step.name(), step.label(), status.name(), Math.max(0, ms), detail));
+    }
+
+    /** Record a step with a custom label (e.g. ENGINE "Decision engine · v1.3") and pre-measured ms. */
+    public void recordMs(PipelineStep step, String label, PipelineStatus status, long ms, String detail) {
+        items.add(new PipelineItem(step.name(), label, status.name(), Math.max(0, ms), detail));
+    }
+
     /** Record a step that was not executed (e.g. after a bureau failure). */
     public void skip(PipelineStep step, String detail) {
         items.add(new PipelineItem(step.name(), step.label(), PipelineStatus.SKIPPED.name(), 0, detail));

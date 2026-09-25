@@ -38,6 +38,9 @@ import java.util.List;
 @EnableConfigurationProperties(ParallaxUsersProperties.class)
 public class SecurityConfig {
 
+    /** The INTERNAL role set (SPEC §15). */
+    private static final String[] INTERNAL = {"UNDERWRITER", "STRATEGIST", "APPROVER", "AUDITOR"};
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, Environment environment,
                                            ObjectMapper objectMapper) throws Exception {
@@ -58,6 +61,17 @@ public class SecurityConfig {
                     // POST /api/v1/applications — intake (SPEC §15).
                     auth.requestMatchers(HttpMethod.POST, "/api/v1/applications")
                             .hasAnyRole("CLIENT", "UNDERWRITER", "STRATEGIST", "APPROVER");
+                    // Read model (SPEC §15): INTERNAL everywhere; ASSISTANT only on the detail.
+                    auth.requestMatchers(HttpMethod.GET, "/api/v1/applications").hasAnyRole(INTERNAL);
+                    auth.requestMatchers(HttpMethod.GET, "/api/v1/applications/*/adverse-action-notice")
+                            .hasAnyRole(INTERNAL);
+                    auth.requestMatchers(HttpMethod.GET, "/api/v1/applications/*")
+                            .hasAnyRole("UNDERWRITER", "STRATEGIST", "APPROVER", "AUDITOR", "ASSISTANT");
+                    auth.requestMatchers(HttpMethod.GET, "/api/v1/decisions/*/reproduce").hasAnyRole(INTERNAL);
+                    // Ledger reads + dev demos (SPEC §15) — INTERNAL.
+                    auth.requestMatchers(HttpMethod.GET, "/api/v1/ledger", "/api/v1/ledger/stats",
+                            "/api/v1/ledger/verify").hasAnyRole(INTERNAL);
+                    auth.requestMatchers(HttpMethod.POST, "/api/v1/ledger/demo/**").hasAnyRole(INTERNAL);
                     // Everything else is denied until a later prompt adds its rule.
                     auth.anyRequest().denyAll();
                 })
