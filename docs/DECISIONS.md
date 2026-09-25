@@ -16,3 +16,7 @@ Each entry is one line: `YYYY-MM-DD · P<nn> · decision · reason`.
 2026-09-25 · P01 · spring-boot-starter-test added (test scope) to the four Spring Boot modules · required by the @SpringBootTest context-load tests the prompt asks for
 2026-09-25 · P01 · spring-boot-maven-plugin bound only in the four Spring Boot modules · plain-jar modules (engine, contract, generator) stay plain
 2026-09-25 · P01 · Built 4 context-load tests + 2 placeholder tests (6 total) · only four Spring Boot services exist in this prompt (account-service is Prompt 19), so the prompt's "five context-load tests" appears to be a miscount; count reported honestly
+2026-09-25 · P02 · SPEC.md reproduced verbatim; unescaped Markdown-only escapes (\_ \[ \]) but kept table-cell pipes as \| · preserves every value while rendering as clean Markdown
+2026-09-25 · P02 · Added an H1 title + one-line orientation above §1 in SPEC.md · a spec file needs a title; no rule, value, endpoint or field was added or changed
+2026-09-25 · P02 · ADRs placed in docs/adr/ · matches the prompt heading and the DoD check `ls docs/adr`
+2026-09-25 · P02 · UI-INVENTORY.md uses `#` for the six required parts and `##` for each screen · satisfies the DoD `grep '^#'` (six parts + one heading per screen)
