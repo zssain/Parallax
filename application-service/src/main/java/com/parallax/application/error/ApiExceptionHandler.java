@@ -49,6 +49,15 @@ public class ApiExceptionHandler {
         return problem;
     }
 
+    /** Manual field validation (e.g. the Idempotency-Key header) → 400 with fieldErrors. */
+    @ExceptionHandler(FieldValidationException.class)
+    public ProblemDetail onFieldValidation(FieldValidationException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        problem.setTitle("Bad Request");
+        problem.setProperty("fieldErrors", ex.getFieldErrors());
+        return problem;
+    }
+
     /** Business errors carry their own status, title and detail (409, 422, 404, …). */
     @ExceptionHandler(ApiProblem.class)
     public ProblemDetail onApiProblem(ApiProblem ex) {
@@ -65,9 +74,5 @@ public class ApiExceptionHandler {
                 HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred");
         problem.setTitle("Internal Server Error");
         return problem;
-    }
-
-    /** One field-level validation error, matching the {field, message} contract in SPEC §15. */
-    public record FieldErrorEntry(String field, String message) {
     }
 }

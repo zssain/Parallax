@@ -25,7 +25,7 @@ public abstract class AbstractPostgresIT {
     protected static final String TEST_DATA_KEY = Base64.getEncoder().encodeToString(filled((byte) 7));
     protected static final String TEST_TOKEN_KEY = Base64.getEncoder().encodeToString(filled((byte) 9));
 
-    static final PostgreSQLContainer<?> POSTGRES =
+    protected static final PostgreSQLContainer<?> POSTGRES =
             new PostgreSQLContainer<>(DockerImageName.parse("postgres:16"))
                     .withCopyFileToContainer(
                             MountableFile.forHostPath("../docker/postgres/init.sql"),

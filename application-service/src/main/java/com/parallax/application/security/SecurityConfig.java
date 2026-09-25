@@ -55,6 +55,9 @@ public class SecurityConfig {
                     }
                     // GET /api/v1/me — any authenticated user.
                     auth.requestMatchers(HttpMethod.GET, "/api/v1/me").authenticated();
+                    // POST /api/v1/applications — intake (SPEC §15).
+                    auth.requestMatchers(HttpMethod.POST, "/api/v1/applications")
+                            .hasAnyRole("CLIENT", "UNDERWRITER", "STRATEGIST", "APPROVER");
                     // Everything else is denied until a later prompt adds its rule.
                     auth.anyRequest().denyAll();
                 })
