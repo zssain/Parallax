@@ -15,6 +15,7 @@
     <name>parallax-engine</name>
     <description>Pure deterministic decision engine — zero runtime dependencies</description>
 
+    <!-- No compile or runtime dependencies, ever. Test scope only. -->
     <dependencies>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -26,5 +27,49 @@
             <artifactId>assertj-core</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>net.jqwik</groupId>
+            <artifactId>jqwik</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit-junit5</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <executions>
+                    <!-- Keep the engine pure: no Spring, Jakarta or Jackson on compile/runtime. -->
+                    <execution>
+                        <id>ban-frameworks</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <bannedDependencies>
+                                    <searchTransitive>true</searchTransitive>
+                                    <excludes>
+                                        <exclude>org.springframework*:*:*:*:compile</exclude>
+                                        <exclude>org.springframework*:*:*:*:runtime</exclude>
+                                        <exclude>jakarta.*:*:*:*:compile</exclude>
+                                        <exclude>jakarta.*:*:*:*:runtime</exclude>
+                                        <exclude>com.fasterxml.jackson*:*:*:*:compile</exclude>
+                                        <exclude>com.fasterxml.jackson*:*:*:*:runtime</exclude>
+                                    </excludes>
+                                    <message>parallax-engine must stay pure: no Spring, Jakarta or Jackson on the compile or runtime classpath.</message>
+                                </bannedDependencies>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>

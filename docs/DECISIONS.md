@@ -20,3 +20,7 @@ Each entry is one line: `YYYY-MM-DD · P<nn> · decision · reason`.
 2026-09-25 · P02 · Added an H1 title + one-line orientation above §1 in SPEC.md · a spec file needs a title; no rule, value, endpoint or field was added or changed
 2026-09-25 · P02 · ADRs placed in docs/adr/ · matches the prompt heading and the DoD check `ls docs/adr`
 2026-09-25 · P02 · UI-INVENTORY.md uses `#` for the six required parts and `##` for each screen · satisfies the DoD `grep '^#'` (six parts + one heading per screen)
+2026-09-26 · P03 · Usd.format uses the Unicode minus sign (−, U+2212) for negatives · matches the prototype money() output and SPEC formatting ("−$100")
+2026-09-26 · P03 · RuleConfigValidator negative-point and sum-of-maxima checks run regardless of array length; only ordering checks are skipped on a wrong length · SPEC only requires skipping ordering to avoid index errors
+2026-09-26 · P03 · ban-frameworks enforcer bans org.springframework*/jakarta.*/com.fasterxml.jackson* on compile+runtime scope only · keeps archunit/jqwik/junit on the test classpath while blocking runtime frameworks
+2026-09-26 · P03 · Removed parallax-engine EnginePlaceholderTest · superseded by real engine tests (ReasonCodeTest, EngineInputTest, UsdTest, RuleConfigsTest, RuleConfigValidatorTest, PurityArchTest)

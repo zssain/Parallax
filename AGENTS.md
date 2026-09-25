@@ -51,7 +51,7 @@ re-runs history under candidate rule versions). Headline feature: Strategy Lab. 
 Jira key PX. Branches feature/PX-<n>-<slug>. Commits start with "PX-<n>: ".
 
 ## Progress log
-- [x] 01 Foundation  - [x] 02 Spec  - [ ] 03 Engine model  - [ ] 04 Engine
+- [x] 01 Foundation  - [x] 02 Spec  - [x] 03 Engine model  - [ ] 04 Engine
 - [ ] 05 Bureau  - [ ] 06 Service foundation  - [ ] 07 Intake  - [ ] 08 Ledger
 - [ ] 09 Decide end to end  - [ ] 10 Resilience  - [ ] 11 Review queue  - [ ] 12 Synthetic history
 - [ ] 13 Replay  - [ ] 14 Governance  - [ ] 15 Shadow, drift, overview  - [ ] 16 Assistant
