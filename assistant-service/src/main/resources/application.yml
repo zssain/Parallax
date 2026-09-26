@@ -1,6 +1,26 @@
 server:
   port: 8083
 
+spring:
+  application:
+    name: assistant-service
+  ai:
+    anthropic:
+      # Blank by default: the service starts without a key (status.configured false, chat returns 503).
+      api-key: ${ANTHROPIC_API_KEY:}
+
+parallax:
+  assistant:
+    # Current Claude Sonnet model id (see DECISIONS.md; fetched from the Anthropic docs).
+    model: ${PARALLAX_ASSISTANT_MODEL:claude-sonnet-5}
+    max-tokens: 1024
+  application:
+    url: ${PARALLAX_APPLICATION_URL:http://localhost:8080}
+  # The assistant's own INTERNAL credentials to call application-service (ASSISTANT role there).
+  credentials:
+    username: ${ASSISTANT_USERNAME:assistant@parallax.dev}
+    password: ${ASSISTANT_PASSWORD:assistant-dev}
+
 management:
   endpoints:
     web:

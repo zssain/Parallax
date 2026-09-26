@@ -137,7 +137,7 @@ public class DecisionQueryService {
                 app.getStatus().name(),
                 app.getCreatedAt(),
                 "***-**-" + app.getSsnLast4(),
-                dataCipher.preview(ssnEnc),
+                displayNamePolicy.ssnPreviewVisible(role) ? dataCipher.preview(ssnEnc) : null,
                 displayNamePolicy.addressVisible(role) ? app.getAddress() : null,
                 UNTRUSTED,
                 current == null ? null : currentView(current),

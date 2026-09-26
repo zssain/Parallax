@@ -18,4 +18,9 @@ public class DisplayNamePolicy {
     public boolean addressVisible(String role) {
         return !"AUDITOR".equals(role);
     }
+
+    /** The read-only ASSISTANT never sees the encrypted-SSN preview (SPEC §9, Prompt 16). */
+    public boolean ssnPreviewVisible(String role) {
+        return !"ASSISTANT".equals(role);
+    }
 }
