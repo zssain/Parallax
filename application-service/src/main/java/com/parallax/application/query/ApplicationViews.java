@@ -60,4 +60,8 @@ public final class ApplicationViews {
     public record TrailItem(long seq, String kind, String outcome, String ruleVersion, Instant createdAt,
                             String prevHash, String hash, Override override) {
     }
+
+    /** The shadow evaluation of this decision, if a version was scoring live traffic (SPEC §10). */
+    public record Shadow(String version, String outcome, Integer score, Integer creditLimit, boolean agrees) {
+    }
 }

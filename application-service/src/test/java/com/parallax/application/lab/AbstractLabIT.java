@@ -21,7 +21,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /** Shared setup for Strategy Lab replay ITs: seed 2,000 SEED records, insert candidates, run replays. */
-abstract class AbstractLabIT extends AbstractIntakeIT {
+public abstract class AbstractLabIT extends AbstractIntakeIT {
 
     protected static final String STRATEGIST = "aditi.rao@parallax.dev";
 

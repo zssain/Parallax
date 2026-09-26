@@ -145,7 +145,19 @@ public class DecisionQueryService {
                 breakdown(base),
                 bureau(base),
                 trail.stream().map(this::trailItem).toList(),
-                null);
+                shadow(base));
+    }
+
+    private ApplicationViews.Shadow shadow(LedgerRecord base) {
+        if (base == null) {
+            return null;
+        }
+        return jdbc.query("SELECT version, outcome, score, credit_limit, agrees FROM shadow_result"
+                        + " WHERE ledger_seq = ?",
+                rs -> rs.next() ? new ApplicationViews.Shadow(rs.getString("version"), rs.getString("outcome"),
+                        rs.getObject("score", Integer.class), rs.getObject("credit_limit", Integer.class),
+                        rs.getBoolean("agrees")) : null,
+                base.seq());
     }
 
     private ApplicationViews.Current currentView(LedgerRecord r) {

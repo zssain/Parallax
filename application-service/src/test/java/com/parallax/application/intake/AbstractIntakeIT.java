@@ -92,7 +92,9 @@ public abstract class AbstractIntakeIT extends AbstractPostgresIT {
         try (Connection c = DriverManager.getConnection(url, "parallax_owner", "owner-dev");
              Statement s = c.createStatement()) {
             s.execute("TRUNCATE decision_ledger, application, bureau_pull, idempotency_key, "
-                    + "loan_outcome, replay_flip, replay_job RESTART IDENTITY CASCADE");
+                    + "loan_outcome, replay_flip, replay_job, shadow_result, drift_report RESTART IDENTITY CASCADE");
+            // Reset the shadow singleton (Prompt 15) — it is a fixed row, not truncatable.
+            s.execute("UPDATE shadow_config SET version = NULL, enabled_by = NULL, enabled_at = NULL WHERE id = 1");
         }
     }
 

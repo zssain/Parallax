@@ -14,10 +14,12 @@ import com.parallax.application.ledger.PartialEngineInput;
 import com.parallax.application.pipeline.PipelineRecorder;
 import com.parallax.application.pipeline.PipelineStatus;
 import com.parallax.application.pipeline.PipelineStep;
+import com.parallax.application.shadow.DecisionCommittedEvent;
 import com.parallax.engine.api.EvaluateResponse;
 import com.parallax.engine.model.Decision;
 import com.parallax.engine.model.EngineInput;
 import com.parallax.engine.model.ReasonCode;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,11 +48,12 @@ public class DecisionCommitService {
     private final ObjectMapper objectMapper;
     private final Clock clock;
     private final CommitFaultHook faultHook;
+    private final ApplicationEventPublisher eventPublisher;
 
     public DecisionCommitService(LedgerWriter ledgerWriter, ApplicationRepository applicationRepository,
                                  JdbcTemplate jdbcTemplate, IdempotencyService idempotency,
                                  PipelineRecorder pipeline, ObjectMapper objectMapper, Clock clock,
-                                 CommitFaultHook faultHook) {
+                                 CommitFaultHook faultHook, ApplicationEventPublisher eventPublisher) {
         this.ledgerWriter = ledgerWriter;
         this.applicationRepository = applicationRepository;
         this.jdbcTemplate = jdbcTemplate;
@@ -59,6 +62,7 @@ public class DecisionCommitService {
         this.objectMapper = objectMapper;
         this.clock = clock;
         this.faultHook = faultHook;
+        this.eventPublisher = eventPublisher;
     }
 
     /** SPEC §3 7a: DECISION/REDECISION row → DECIDED → first_used_at → key completed, one transaction. */
@@ -91,6 +95,9 @@ public class DecisionCommitService {
         jdbcTemplate.update(
                 "UPDATE rule_version SET first_used_at = ? WHERE version = ? AND first_used_at IS NULL",
                 Timestamp.from(Instant.now(clock)), response.ruleVersion());
+
+        // Shadow mode (SPEC §10): a LIVE DECISION/REDECISION with engine data is re-scored after commit.
+        eventPublisher.publishEvent(new DecisionCommittedEvent(row.seq(), input, decision));
 
         // The scheduled re-decision/retry jobs run without a request: no pipeline, no idempotency key.
         if (!requestActive()) {

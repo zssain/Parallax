@@ -72,9 +72,10 @@ public class RuleVersionService {
         rows.sort((a, b) -> Integer.compare(minor(b.version), minor(a.version))); // newest first
 
         Map<String, Long> usedBy = usedByCounts();
+        String shadowVersion = shadowVersion();
         List<LabViews.VersionView> items = new ArrayList<>(rows.size());
         for (Row r : rows) {
-            items.add(toView(r, usedBy.getOrDefault(r.version, 0L)));
+            items.add(toView(r, usedBy.getOrDefault(r.version, 0L), shadowVersion));
         }
         return new LabViews.VersionsResponse(items, liveVersion(), rollbackTarget());
     }
@@ -198,6 +199,9 @@ public class RuleVersionService {
         jdbc.update("UPDATE rule_version SET status = 'LIVE', promoted_at = ?, approved_by = ?, retired_at = NULL"
                         + " WHERE version = ?",
                 when, approver, version);
+        // Promoting the shadow version clears the shadow slot in the same transaction (SPEC §10).
+        jdbc.update("UPDATE shadow_config SET version = NULL, enabled_by = NULL, enabled_at = NULL"
+                + " WHERE id = 1 AND version = ?", version);
 
         Map<String, Object> detail = new LinkedHashMap<>();
         detail.put("action", "PROMOTE");
@@ -434,13 +438,19 @@ public class RuleVersionService {
     }
 
     private LabViews.VersionView view(String version) {
-        return toView(row(version), usedBy(version));
+        return toView(row(version), usedBy(version), shadowVersion());
     }
 
-    private LabViews.VersionView toView(Row r, long usedBy) {
+    private LabViews.VersionView toView(Row r, long usedBy, String shadowVersion) {
         return new LabViews.VersionView(r.version, r.status, r.note, r.createdBy, r.createdAt,
                 r.proposedBy, r.approvedBy, r.promotedAt, usedBy,
-                latestReplayJob(r.version, r.configHash), canonicalJson.read(r.configJson, RuleConfig.class), false);
+                latestReplayJob(r.version, r.configHash), canonicalJson.read(r.configJson, RuleConfig.class),
+                r.version.equals(shadowVersion));
+    }
+
+    private String shadowVersion() {
+        return jdbc.query("SELECT version FROM shadow_config WHERE id = 1",
+                rs -> rs.next() ? rs.getString(1) : null);
     }
 
     // --- row projection ---------------------------------------------------------------------------

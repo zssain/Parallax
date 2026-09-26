@@ -108,6 +108,14 @@ public class SecurityConfig {
                     auth.requestMatchers(HttpMethod.POST, "/api/v1/lab/versions/*/reject").hasRole("APPROVER");
                     auth.requestMatchers(HttpMethod.DELETE, "/api/v1/lab/versions/*").hasRole("STRATEGIST");
                     auth.requestMatchers(HttpMethod.POST, "/api/v1/lab/rollback").hasRole("APPROVER");
+                    // Shadow mode, drift and overview (SPEC §15, Prompt 15).
+                    auth.requestMatchers(HttpMethod.POST, "/api/v1/lab/versions/*/shadow").hasRole("STRATEGIST");
+                    auth.requestMatchers(HttpMethod.GET, "/api/v1/lab/versions/*/shadow-results").hasAnyRole(INTERNAL);
+                    auth.requestMatchers(HttpMethod.GET, "/api/v1/drift/latest")
+                            .hasAnyRole("UNDERWRITER", "STRATEGIST", "APPROVER", "AUDITOR", "ASSISTANT");
+                    auth.requestMatchers(HttpMethod.POST, "/api/v1/drift/run").hasAnyRole("STRATEGIST", "APPROVER");
+                    auth.requestMatchers(HttpMethod.POST, "/api/v1/drift/simulate").hasAnyRole(INTERNAL);
+                    auth.requestMatchers(HttpMethod.GET, "/api/v1/overview").hasAnyRole(INTERNAL);
                     // Everything else is denied until a later prompt adds its rule.
                     auth.anyRequest().denyAll();
                 })
