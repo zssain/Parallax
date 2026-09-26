@@ -91,7 +91,8 @@ public abstract class AbstractIntakeIT extends AbstractPostgresIT {
         String url = "jdbc:postgresql://" + POSTGRES.getHost() + ":" + POSTGRES.getMappedPort(5432) + "/parallax";
         try (Connection c = DriverManager.getConnection(url, "parallax_owner", "owner-dev");
              Statement s = c.createStatement()) {
-            s.execute("TRUNCATE decision_ledger, application, bureau_pull, idempotency_key RESTART IDENTITY CASCADE");
+            s.execute("TRUNCATE decision_ledger, application, bureau_pull, idempotency_key, "
+                    + "loan_outcome, replay_flip, replay_job RESTART IDENTITY CASCADE");
         }
     }
 

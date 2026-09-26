@@ -48,6 +48,19 @@ public class LedgerWriter {
 
     @Transactional(propagation = Propagation.MANDATORY)
     public LedgerRecord append(LedgerEntry entry) {
+        return append(entry, Instant.now(clock));
+    }
+
+    /**
+     * Appends a row stamped with an explicit createdAt (SPEC §5): used by the history seeder so SEED
+     * rows carry their historical instant. Same lock, chain and micro-truncation as {@link #append}.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public LedgerRecord appendAt(LedgerEntry entry, Instant createdAt) {
+        return append(entry, createdAt);
+    }
+
+    private LedgerRecord append(LedgerEntry entry, Instant at) {
         jdbcTemplate.execute("SELECT pg_advisory_xact_lock(" + LEDGER_LOCK_KEY + ")");
 
         List<SeqHash> last = jdbcTemplate.query(
@@ -56,7 +69,7 @@ public class LedgerWriter {
         long seq = last.isEmpty() ? 1L : last.get(0).seq() + 1;
         String prevHash = last.isEmpty() ? GENESIS_PREV_HASH : last.get(0).hash();
 
-        Instant createdAt = Instant.now(clock).truncatedTo(ChronoUnit.MICROS);
+        Instant createdAt = at.truncatedTo(ChronoUnit.MICROS);
 
         LedgerRecord draft = toRecord(entry, seq, createdAt, prevHash, null);
         String hash = canonicalJson.sha256Hex(prevHash + "|" + canonicalizer.payload(draft));

@@ -13,9 +13,15 @@
 
     <artifactId>data-generator</artifactId>
     <name>data-generator</name>
-    <description>Synthetic history CLI and library (arrives in Prompt 12)</description>
+    <description>Synthetic history CLI and library</description>
 
     <dependencies>
+        <!-- The generator depends on the pure engine only (EngineInput, PullType, RuleConfigs). No Spring, no Jackson. -->
+        <dependency>
+            <groupId>com.parallax</groupId>
+            <artifactId>parallax-engine</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

@@ -1,0 +1,6 @@
+# Seed profile (SPEC §12, Prompt 12): one-shot history + demo application seeding, then exit.
+# No web server — the SeedRunner drives HistorySeeder then DemoApplicationsSeeder and calls
+# SpringApplication.exit. SeedScopeConfig registers the request scope the intake pipeline needs.
+spring:
+  main:
+    web-application-type: none

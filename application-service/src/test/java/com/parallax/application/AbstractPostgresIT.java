@@ -45,6 +45,10 @@ public abstract class AbstractPostgresIT {
         registry.add("spring.flyway.url", () -> url);
         registry.add("spring.flyway.user", () -> "parallax_owner");
         registry.add("spring.flyway.password", () -> "owner-dev");
+        // Several distinct test contexts stay cached at once, each with its own pool, against one shared
+        // Postgres — keep pools small so they never exhaust the container's connection slots.
+        registry.add("spring.datasource.hikari.maximum-pool-size", () -> "4");
+        registry.add("spring.datasource.hikari.minimum-idle", () -> "0");
         // Deterministic 32-byte test keys.
         registry.add("parallax.data-key", () -> TEST_DATA_KEY);
         registry.add("parallax.token-key", () -> TEST_TOKEN_KEY);

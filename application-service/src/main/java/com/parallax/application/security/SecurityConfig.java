@@ -2,7 +2,7 @@ package com.parallax.application.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -32,10 +32,11 @@ import java.util.List;
  * HTTP Basic, stateless security (SPEC §9, §15). CSRF is disabled because this is a stateless API
  * authenticated per request with Basic. Unauthenticated and forbidden requests return an RFC 7807
  * ProblemDetail (401 / 403). Every URL rule lives here, in the order of SPEC §15; later prompts add
- * rules to this one class.
+ * rules to this one class. Only active in a servlet web context — the non-web seed profile has no
+ * HTTP endpoints and no {@code HttpSecurity} bean (Prompt 12).
  */
 @Configuration
-@EnableConfigurationProperties(ParallaxUsersProperties.class)
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 public class SecurityConfig {
 
     /** The INTERNAL role set (SPEC §15). */

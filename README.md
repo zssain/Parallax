@@ -25,6 +25,28 @@ cp .env.example .env
 docker compose up -d postgres
 ```
 
+## Seeding
+
+The `seed` profile ingests synthetic history (SEED ledger rows with known loan outcomes) and then
+pushes the 14 demo applicants of SPEC §16 through the real pipeline (LIVE, APP-1041 … APP-1054), then
+exits. Start Postgres, `bureau-mock` and `decision-service`, then run the one-shot command:
+
+```bash
+./mvnw -q -pl application-service spring-boot:run \
+  -Dspring-boot.run.profiles=dev,seed \
+  -Dspring-boot.run.arguments=--parallax.seed.generate-count=20000
+```
+
+Use `--parallax.seed.generate-count=100000` for a larger history. Seeding refuses to run unless the
+ledger holds nothing but GOVERNANCE rows; to reseed, reset the volume with
+`docker compose down -v && docker compose up -d postgres` first. The generator is also a standalone
+CLI:
+
+```bash
+java -jar data-generator/target/data-generator-*.jar \
+  --count 100000 --seed 20260925 --out history.jsonl --days 365 --drift 0.35 --drift-days 60 --as-of 2026-09-25
+```
+
 ## Layout
 - `parallax-engine/` — pure deterministic engine (zero runtime dependencies)
 - `bureau-contract/`, `bureau-mock/` — SOAP credit bureau contract and mock
