@@ -6,14 +6,17 @@ import com.parallax.application.intake.Product;
 
 import java.time.LocalDate;
 
-/** Rebuilds an {@link ApplicationRequest} from a stored application, for the recovery jobs (SPEC §6). */
-final class ApplicationForms {
+/**
+ * Rebuilds an {@link ApplicationRequest} from a stored application, for the recovery jobs (SPEC §6)
+ * and for the ENGINE_FAILED_MANUAL override path, which rebuilds the EngineInput (Prompt 11).
+ */
+public final class ApplicationForms {
 
     private ApplicationForms() {
     }
 
     /** Decrypts the stored fields the bureau call and feature derivation need. */
-    static ApplicationRequest formOf(ApplicationEntity app) {
+    public static ApplicationRequest formOf(ApplicationEntity app) {
         String[] parts = app.getName().split(" ", 2);
         String firstName = parts[0];
         String lastName = parts.length > 1 ? parts[1] : parts[0];

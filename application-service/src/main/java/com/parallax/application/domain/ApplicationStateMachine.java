@@ -9,11 +9,12 @@ import java.util.Set;
  * {@link #transition(ApplicationStatus, ApplicationStatus)}; any transition not listed here throws.
  *
  * <pre>
- *   RECEIVED            → BUREAU_PULLED | BUREAU_UNAVAILABLE
- *   BUREAU_PULLED       → DECIDED | ENGINE_PENDING
- *   BUREAU_UNAVAILABLE  → DECIDED (automatic re-decision) | REVIEWED (REFER override)
- *   ENGINE_PENDING      → DECIDED | ENGINE_FAILED_MANUAL
- *   DECIDED             → REVIEWED (REFER override)
+ *   RECEIVED             → BUREAU_PULLED | BUREAU_UNAVAILABLE
+ *   BUREAU_PULLED        → DECIDED | ENGINE_PENDING
+ *   BUREAU_UNAVAILABLE   → DECIDED (automatic re-decision) | REVIEWED (REFER override)
+ *   ENGINE_PENDING       → DECIDED | ENGINE_FAILED_MANUAL
+ *   ENGINE_FAILED_MANUAL → REVIEWED (manual review)
+ *   DECIDED              → REVIEWED (REFER override)
  * </pre>
  */
 public final class ApplicationStateMachine {
@@ -32,7 +33,8 @@ public final class ApplicationStateMachine {
                 Set.of(ApplicationStatus.DECIDED, ApplicationStatus.ENGINE_FAILED_MANUAL));
         LEGAL.put(ApplicationStatus.DECIDED,
                 Set.of(ApplicationStatus.REVIEWED));
-        LEGAL.put(ApplicationStatus.ENGINE_FAILED_MANUAL, Set.of());
+        LEGAL.put(ApplicationStatus.ENGINE_FAILED_MANUAL,
+                Set.of(ApplicationStatus.REVIEWED));
         LEGAL.put(ApplicationStatus.REVIEWED, Set.of());
     }
 

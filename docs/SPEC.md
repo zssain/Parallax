@@ -95,7 +95,7 @@ All unlisted fields: independentIncome true, bureauConsent true, addressMismatch
 
 ## §6 Application states
 
-RECEIVED → BUREAU_PULLED → DECIDED. RECEIVED → BUREAU_UNAVAILABLE (REFER, B01) → automatic re-decision when the circuit is not OPEN → REDECISION row (linkedSeq = the B01 row) → DECIDED. BUREAU_PULLED → ENGINE_PENDING (engine retry job, 3 attempts total counted in engine_attempts) → DECIDED, or → ENGINE_FAILED_MANUAL (shown in the review queue). An application whose current outcome is REFER (DECIDED or BUREAU_UNAVAILABLE) → REVIEWED via an OVERRIDE row. Any other transition throws.
+RECEIVED → BUREAU_PULLED → DECIDED. RECEIVED → BUREAU_UNAVAILABLE (REFER, B01) → automatic re-decision when the circuit is not OPEN → REDECISION row (linkedSeq = the B01 row) → DECIDED. BUREAU_PULLED → ENGINE_PENDING (engine retry job, 3 attempts total counted in engine_attempts) → DECIDED, or → ENGINE_FAILED_MANUAL (shown in the review queue). An application whose current outcome is REFER (DECIDED or BUREAU_UNAVAILABLE) → REVIEWED via an OVERRIDE row. An ENGINE_FAILED_MANUAL application → REVIEWED via an OVERRIDE row whose EngineInput is rebuilt from the stored application and its reused bureau pull (no base row, score null, reason_codes []). Any other transition throws.
 
 ## §7 Idempotency
 

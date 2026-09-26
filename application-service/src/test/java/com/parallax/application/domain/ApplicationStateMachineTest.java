@@ -24,6 +24,7 @@ class ApplicationStateMachineTest {
             "BUREAU_UNAVAILABLE, REVIEWED",
             "ENGINE_PENDING, DECIDED",
             "ENGINE_PENDING, ENGINE_FAILED_MANUAL",
+            "ENGINE_FAILED_MANUAL, REVIEWED",
             "DECIDED, REVIEWED"
     })
     void legalTransitionsPass(ApplicationStatus from, ApplicationStatus to) {

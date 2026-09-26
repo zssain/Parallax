@@ -183,6 +183,11 @@ public abstract class AbstractIntakeIT extends AbstractPostgresIT {
         return mvc.perform(get(path).with(httpBasic(username, "demo-password")));
     }
 
+    protected ResultActions postJsonAs(String username, String path, String bodyJson) throws Exception {
+        return mvc.perform(post(path).with(httpBasic(username, "demo-password"))
+                .contentType(MediaType.APPLICATION_JSON).content(bodyJson));
+    }
+
     protected ResultActions postAs(String username, String path) throws Exception {
         return mvc.perform(post(path).with(httpBasic(username, "demo-password")));
     }

@@ -72,6 +72,16 @@ public class SecurityConfig {
                     auth.requestMatchers(HttpMethod.GET, "/api/v1/ledger", "/api/v1/ledger/stats",
                             "/api/v1/ledger/verify").hasAnyRole(INTERNAL);
                     auth.requestMatchers(HttpMethod.POST, "/api/v1/ledger/demo/**").hasAnyRole(INTERNAL);
+                    // Review queue + overrides (SPEC §15). The queue is INTERNAL; recording an override
+                    // is UNDERWRITER only; override stats add ASSISTANT.
+                    auth.requestMatchers(HttpMethod.GET, "/api/v1/reviews/queue").hasAnyRole(INTERNAL);
+                    auth.requestMatchers(HttpMethod.GET, "/api/v1/reviews/override-stats")
+                            .hasAnyRole("UNDERWRITER", "STRATEGIST", "APPROVER", "AUDITOR", "ASSISTANT");
+                    auth.requestMatchers(HttpMethod.POST, "/api/v1/reviews/*").hasRole("UNDERWRITER");
+                    // System screen (SPEC §15) — all INTERNAL; bureau-fault is dev only.
+                    auth.requestMatchers(HttpMethod.GET, "/api/v1/system/status",
+                            "/api/v1/system/idempotency-keys", "/api/v1/system/bureau-pulls").hasAnyRole(INTERNAL);
+                    auth.requestMatchers(HttpMethod.POST, "/api/v1/system/bureau-fault").hasAnyRole(INTERNAL);
                     // Everything else is denied until a later prompt adds its rule.
                     auth.anyRequest().denyAll();
                 })

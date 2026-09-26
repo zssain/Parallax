@@ -30,6 +30,8 @@ parallax:
   # Downstream services (SPEC §2).
   decision:
     url: ${PARALLAX_DECISION_URL:http://localhost:8081}
+  assistant:
+    url: ${PARALLAX_ASSISTANT_URL:http://localhost:8083}
   internal-token: ${INTERNAL_TOKEN:internal-dev}
   # Scheduled recovery jobs (SPEC §6; Prompt 10).
   jobs:
