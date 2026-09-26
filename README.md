@@ -47,6 +47,15 @@ java -jar data-generator/target/data-generator-*.jar \
   --count 100000 --seed 20260925 --out history.jsonl --days 365 --drift 0.35 --drift-days 60 --as-of 2026-09-25
 ```
 
+## Performance
+
+Strategy Lab replay, measured 2026-09-26 on this machine:
+
+- Machine: Apple M5, 10 cores, 16 GB RAM (`sysctl -n machdep.cpu.brand_string` / `hw.ncpu` / `hw.memsize`).
+- Dataset: 100,000 SEED history records (volume reset, seeded via the `seed` profile), plus the 14 demo LIVE decisions → 100,014 replayable rows.
+- Candidate: v1.3 config with `approveCutoff` 700; baseline the LIVE v1.3.
+- Result: **loadMs 1099, evaluateMs 147, totalMs 1645** (job RJ-0582AD). baseline approvals 72,082 (0.7207) → candidate 67,746 (0.6774); 4,336 flips; immature 5.
+
 ## Layout
 - `parallax-engine/` — pure deterministic engine (zero runtime dependencies)
 - `bureau-contract/`, `bureau-mock/` — SOAP credit bureau contract and mock

@@ -83,6 +83,14 @@ public class SecurityConfig {
                     auth.requestMatchers(HttpMethod.GET, "/api/v1/system/status",
                             "/api/v1/system/idempotency-keys", "/api/v1/system/bureau-pulls").hasAnyRole(INTERNAL);
                     auth.requestMatchers(HttpMethod.POST, "/api/v1/system/bureau-fault").hasAnyRole(INTERNAL);
+                    // Strategy Lab replay (SPEC §15). STRATEGIST starts a replay; ASSISTANT resolves an
+                    // existing one. Job detail is INTERNAL + ASSISTANT; flips are INTERNAL only.
+                    auth.requestMatchers(HttpMethod.POST, "/api/v1/lab/versions/*/replays")
+                            .hasAnyRole("STRATEGIST", "ASSISTANT");
+                    auth.requestMatchers(HttpMethod.GET, "/api/v1/lab/replays/*/flips",
+                            "/api/v1/lab/replays/*/flips/*").hasAnyRole(INTERNAL);
+                    auth.requestMatchers(HttpMethod.GET, "/api/v1/lab/replays/*")
+                            .hasAnyRole("UNDERWRITER", "STRATEGIST", "APPROVER", "AUDITOR", "ASSISTANT");
                     // Everything else is denied until a later prompt adds its rule.
                     auth.anyRequest().denyAll();
                 })

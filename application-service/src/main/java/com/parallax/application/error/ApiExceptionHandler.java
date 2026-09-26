@@ -58,6 +58,15 @@ public class ApiExceptionHandler {
         return problem;
     }
 
+    /** Invalid rule configuration → 422 with an {@code errors} array (SPEC §10). */
+    @ExceptionHandler(ConfigValidationException.class)
+    public ProblemDetail onConfigValidation(ConfigValidationException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+        problem.setTitle("Unprocessable Entity");
+        problem.setProperty("errors", ex.getErrors());
+        return problem;
+    }
+
     /** Business errors carry their own status, title and detail (409, 422, 404, …). */
     @ExceptionHandler(ApiProblem.class)
     public ProblemDetail onApiProblem(ApiProblem ex) {
