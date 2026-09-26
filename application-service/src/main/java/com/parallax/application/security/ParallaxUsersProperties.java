@@ -3,6 +3,7 @@ package com.parallax.application.security;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -51,6 +52,21 @@ public class ParallaxUsersProperties {
 
         public void setRole(String role) {
             this.role = role;
+        }
+
+        /**
+         * The user's granted roles. Almost always a single role; a comma-separated {@code role}
+         * (e.g. {@code STRATEGIST,APPROVER} for the test-only strat2 maker-checker user, SPEC §9)
+         * grants each one. The first entry is the primary role used for PII masking ({@link CurrentUser}).
+         */
+        public List<String> getRoles() {
+            if (role == null || role.isBlank()) {
+                return List.of();
+            }
+            return Arrays.stream(role.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .toList();
         }
 
         public String getPasswordEnv() {

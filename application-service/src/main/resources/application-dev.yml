@@ -26,6 +26,11 @@ parallax:
       display-name: Parallax Assistant
       role: ASSISTANT
       password-env: ASSISTANT_PASSWORD
+    # Test-only maker-checker user (SPEC §9): holds STRATEGIST and APPROVER so it can both propose and
+    # attempt to approve — used by MakerCheckerIT to prove the proposer cannot approve their own version.
+    - username: strat2@parallax.dev
+      display-name: Strat Two
+      role: STRATEGIST,APPROVER
 
 springdoc:
   api-docs:

@@ -9,10 +9,15 @@ import com.parallax.engine.model.RuleConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.web.servlet.ResultActions;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /** Shared setup for Strategy Lab replay ITs: seed 2,000 SEED records, insert candidates, run replays. */
@@ -24,6 +29,8 @@ abstract class AbstractLabIT extends AbstractIntakeIT {
     protected HistorySeeder historySeeder;
     @Autowired
     protected CanonicalJson canonicalJson;
+    @Autowired
+    protected com.parallax.application.rules.LiveRuleService liveRuleService;
 
     @DynamicPropertySource
     static void seedProps(DynamicPropertyRegistry registry) {
@@ -31,13 +38,25 @@ abstract class AbstractLabIT extends AbstractIntakeIT {
     }
 
     /**
-     * Keep rule_version to just the seeded v1.2/v1.3 before and after each test — it is not truncated by
-     * the base, so candidate versions must not leak into other suites (e.g. MigrationIT).
+     * Restore the seeded v1.3 (LIVE) / v1.2 (RETIRED) rule versions and drop any candidates before and
+     * after each test — rule_version is not truncated by the base, and Prompt 14 tests promote and roll
+     * back. Restoring v1.3 to LIVE before deleting candidates guarantees the DB is never left without a
+     * LIVE version, and evicting the cache clears any promotion cached by a prior test.
      */
     @BeforeEach
     @AfterEach
-    void clearCandidateVersions() {
+    void restoreSeededVersions() {
+        jdbc.update("UPDATE rule_version SET status = 'LIVE', "
+                + "promoted_at = TIMESTAMP WITH TIME ZONE '2026-08-14 00:00:00+00', retired_at = NULL, "
+                + "proposed_by = 'Aditi Rao', approved_by = 'Vikram Nair', rejection_note = NULL, "
+                + "first_used_at = NULL WHERE version = 'v1.3'");
+        jdbc.update("UPDATE rule_version SET status = 'RETIRED', "
+                + "promoted_at = TIMESTAMP WITH TIME ZONE '2026-06-02 00:00:00+00', "
+                + "retired_at = TIMESTAMP WITH TIME ZONE '2026-08-14 00:00:00+00', "
+                + "proposed_by = 'Aditi Rao', approved_by = 'Vikram Nair', rejection_note = NULL, "
+                + "first_used_at = NULL WHERE version = 'v1.2'");
         jdbc.update("DELETE FROM rule_version WHERE version NOT IN ('v1.2','v1.3')");
+        liveRuleService.evict();
     }
 
     /** Seed 2,000 SEED history records with loan outcomes (evaluated under v1.3). */
@@ -61,6 +80,20 @@ abstract class AbstractLabIT extends AbstractIntakeIT {
         return new RuleConfig(approveCutoff, v.referCutoff(), v.minPayPct(), v.atpShare(), v.livingCost(),
                 v.minLimit(), v.bandLimits(), v.utilPts(), v.inqPts(), v.delqPts(), v.tradelinePts(),
                 v.fileAgePts(), v.incomePts(), v.ccf(), v.lgd());
+    }
+
+    protected ResultActions putJsonAs(String user, String path, String bodyJson) throws Exception {
+        return mvc.perform(put(path).with(httpBasic(user, "demo-password"))
+                .contentType(MediaType.APPLICATION_JSON).content(bodyJson));
+    }
+
+    protected ResultActions deleteAs(String user, String path) throws Exception {
+        return mvc.perform(delete(path).with(httpBasic(user, "demo-password")));
+    }
+
+    /** JSON body for {@code POST /api/v1/lab/versions} wrapping a config (Prompt 14). */
+    protected String createBody(RuleConfig config) {
+        return "{\"config\":" + canonicalJson.write(config) + "}";
     }
 
     protected String startReplay(String user, String version) throws Exception {

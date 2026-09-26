@@ -91,6 +91,23 @@ public class SecurityConfig {
                             "/api/v1/lab/replays/*/flips/*").hasAnyRole(INTERNAL);
                     auth.requestMatchers(HttpMethod.GET, "/api/v1/lab/replays/*")
                             .hasAnyRole("UNDERWRITER", "STRATEGIST", "APPROVER", "AUDITOR", "ASSISTANT");
+                    // Strategy Lab rule-version lifecycle (SPEC §15, Prompt 14). Reads: the version list
+                    // and compare add ASSISTANT; the live rule is readable by the CLIENT decision path.
+                    // Writes are split by role: STRATEGIST authors/proposes, APPROVER approves/rolls back.
+                    auth.requestMatchers(HttpMethod.GET, "/api/v1/lab/versions/compare")
+                            .hasAnyRole("UNDERWRITER", "STRATEGIST", "APPROVER", "AUDITOR", "ASSISTANT");
+                    auth.requestMatchers(HttpMethod.GET, "/api/v1/lab/versions/live")
+                            .hasAnyRole("UNDERWRITER", "STRATEGIST", "APPROVER", "AUDITOR", "CLIENT");
+                    auth.requestMatchers(HttpMethod.GET, "/api/v1/lab/versions")
+                            .hasAnyRole("UNDERWRITER", "STRATEGIST", "APPROVER", "AUDITOR", "ASSISTANT");
+                    auth.requestMatchers(HttpMethod.POST, "/api/v1/lab/versions").hasRole("STRATEGIST");
+                    auth.requestMatchers(HttpMethod.PUT, "/api/v1/lab/versions/*/config").hasRole("STRATEGIST");
+                    auth.requestMatchers(HttpMethod.POST, "/api/v1/lab/versions/*/draft").hasRole("STRATEGIST");
+                    auth.requestMatchers(HttpMethod.POST, "/api/v1/lab/versions/*/propose").hasRole("STRATEGIST");
+                    auth.requestMatchers(HttpMethod.POST, "/api/v1/lab/versions/*/approve").hasRole("APPROVER");
+                    auth.requestMatchers(HttpMethod.POST, "/api/v1/lab/versions/*/reject").hasRole("APPROVER");
+                    auth.requestMatchers(HttpMethod.DELETE, "/api/v1/lab/versions/*").hasRole("STRATEGIST");
+                    auth.requestMatchers(HttpMethod.POST, "/api/v1/lab/rollback").hasRole("APPROVER");
                     // Everything else is denied until a later prompt adds its rule.
                     auth.anyRequest().denyAll();
                 })
@@ -115,7 +132,7 @@ public class SecurityConfig {
             String encoded = encoder.encode(resolvePassword(u.getPasswordEnv()));
             users.add(User.withUsername(u.getUsername())
                     .password(encoded)
-                    .roles(u.getRole()) // granted as ROLE_<role>
+                    .roles(u.getRoles().toArray(String[]::new)) // each granted as ROLE_<role>
                     .build());
         }
         return new InMemoryUserDetailsManager(users);

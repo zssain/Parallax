@@ -32,8 +32,10 @@ public class CurrentUser {
         return lookup().getDisplayName();
     }
 
+    /** The caller's primary role (the first of possibly several), used for PII masking (SPEC §9). */
     public String role() {
-        return lookup().getRole();
+        java.util.List<String> roles = lookup().getRoles();
+        return roles.isEmpty() ? null : roles.get(0);
     }
 
     private ParallaxUsersProperties.User lookup() {
