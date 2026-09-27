@@ -184,8 +184,10 @@ pagination.
 
 Measured by `./mvnw verify` on 2026-09-27: **161 unit tests** (Surefire, including jqwik
 property tests) and **114 integration tests** (Failsafe on Testcontainers Postgres 16) across
-all modules — **0 failures, 0 errors**. The web app adds **5 Playwright end-to-end specs**
-(multi-step walkthroughs) run against the running stack with `npm run e2e`.
+all modules — **0 failures, 0 errors**. The web app adds Playwright end-to-end specs run against
+the running stack with `npm run e2e` — screenshot walkthroughs plus `release.spec.ts` (8 functional
+scenarios: marketing, four-role sign-in, submit + reproduce, adverse-action, ledger verify/tamper,
+drift simulation, assistant, accounts/collections), all green against `docker compose`.
 
 | Layer | Tool | What it proves |
 | --- | --- | --- |
