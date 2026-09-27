@@ -55,6 +55,7 @@ public abstract class AbstractPostgresIT {
         // Push scheduled job triggers far out so tests drive runOnce() deterministically.
         registry.add("parallax.jobs.redecision-ms", () -> "3600000");
         registry.add("parallax.jobs.engine-retry-ms", () -> "3600000");
+        registry.add("parallax.outbox.publish-ms", () -> "3600000");
     }
 
     private static byte[] filled(byte value) {

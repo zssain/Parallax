@@ -11,6 +11,7 @@ import com.parallax.application.ledger.LedgerRecord;
 import com.parallax.application.ledger.LedgerSource;
 import com.parallax.application.ledger.LedgerWriter;
 import com.parallax.application.ledger.PartialEngineInput;
+import com.parallax.application.outbox.OutboxWriter;
 import com.parallax.application.pipeline.PipelineRecorder;
 import com.parallax.application.pipeline.PipelineStatus;
 import com.parallax.application.pipeline.PipelineStep;
@@ -18,6 +19,7 @@ import com.parallax.application.shadow.DecisionCommittedEvent;
 import com.parallax.engine.api.EvaluateResponse;
 import com.parallax.engine.model.Decision;
 import com.parallax.engine.model.EngineInput;
+import com.parallax.engine.model.Outcome;
 import com.parallax.engine.model.ReasonCode;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -49,11 +51,13 @@ public class DecisionCommitService {
     private final Clock clock;
     private final CommitFaultHook faultHook;
     private final ApplicationEventPublisher eventPublisher;
+    private final OutboxWriter outboxWriter;
 
     public DecisionCommitService(LedgerWriter ledgerWriter, ApplicationRepository applicationRepository,
                                  JdbcTemplate jdbcTemplate, IdempotencyService idempotency,
                                  PipelineRecorder pipeline, ObjectMapper objectMapper, Clock clock,
-                                 CommitFaultHook faultHook, ApplicationEventPublisher eventPublisher) {
+                                 CommitFaultHook faultHook, ApplicationEventPublisher eventPublisher,
+                                 OutboxWriter outboxWriter) {
         this.ledgerWriter = ledgerWriter;
         this.applicationRepository = applicationRepository;
         this.jdbcTemplate = jdbcTemplate;
@@ -63,6 +67,7 @@ public class DecisionCommitService {
         this.clock = clock;
         this.faultHook = faultHook;
         this.eventPublisher = eventPublisher;
+        this.outboxWriter = outboxWriter;
     }
 
     /** SPEC §3 7a: DECISION/REDECISION row → DECIDED → first_used_at → key completed, one transaction. */
@@ -86,6 +91,14 @@ public class DecisionCommitService {
                 .atpMax(decision.atpMax())
                 .linkedSeq(linkedSeq)
                 .build());
+        // Transactional outbox (SPEC §13): a LIVE APPROVED DECISION/REDECISION asks account-service to
+        // open an account, in this same transaction. SEED history never reaches this commit path.
+        if (decision.outcome() == Outcome.APPROVED) {
+            outboxWriter.accountOpenRequested(app.getPublicId(), app.getName(), app.getProduct(),
+                    decision.creditLimit(), app.getAnnualIncome(), app.getMonthlyHousing(),
+                    app.getMonthlyDebt(), response.ruleVersion(), row.seq());
+        }
+
         faultHook.afterLedgerInsert();
 
         app.changeStatus(ApplicationStatus.DECIDED);

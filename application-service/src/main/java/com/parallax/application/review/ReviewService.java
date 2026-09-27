@@ -18,6 +18,7 @@ import com.parallax.application.ledger.LedgerReader;
 import com.parallax.application.ledger.LedgerRecord;
 import com.parallax.application.ledger.LedgerSource;
 import com.parallax.application.ledger.LedgerWriter;
+import com.parallax.application.outbox.OutboxWriter;
 import com.parallax.application.pii.DataCipher;
 import com.parallax.application.query.DisplayNamePolicy;
 import com.parallax.application.rules.LiveRule;
@@ -100,13 +101,15 @@ public class ReviewService {
     private final FeatureService featureService;
     private final EngineInputMapper engineInputMapper;
     private final LiveRuleService liveRuleService;
+    private final OutboxWriter outboxWriter;
     private final Clock clock;
 
     public ReviewService(JdbcTemplate jdbc, LedgerReader ledgerReader, LedgerWriter ledgerWriter,
                          ApplicationRepository applicationRepository, DataCipher dataCipher,
                          DisplayNamePolicy displayNamePolicy, CanonicalJson canonicalJson,
                          CurrentUser currentUser, BureauService bureauService, FeatureService featureService,
-                         EngineInputMapper engineInputMapper, LiveRuleService liveRuleService, Clock clock) {
+                         EngineInputMapper engineInputMapper, LiveRuleService liveRuleService,
+                         OutboxWriter outboxWriter, Clock clock) {
         this.jdbc = jdbc;
         this.ledgerReader = ledgerReader;
         this.ledgerWriter = ledgerWriter;
@@ -119,6 +122,7 @@ public class ReviewService {
         this.featureService = featureService;
         this.engineInputMapper = engineInputMapper;
         this.liveRuleService = liveRuleService;
+        this.outboxWriter = outboxWriter;
         this.clock = clock;
     }
 
@@ -209,6 +213,13 @@ public class ReviewService {
         app.changeStatus(ApplicationStatus.REVIEWED);
         app.setUpdatedAt(Instant.now(clock).truncatedTo(ChronoUnit.MICROS));
         applicationRepository.save(app);
+
+        // Transactional outbox (SPEC §13): an OVERRIDE to APPROVED opens an account, in this transaction.
+        if ("APPROVED".equals(decision)) {
+            outboxWriter.accountOpenRequested(app.getPublicId(), app.getName(), app.getProduct(),
+                    creditLimit, app.getAnnualIncome(), app.getMonthlyHousing(), app.getMonthlyDebt(),
+                    row.ruleVersion(), row.seq());
+        }
 
         return new ReviewViews.RecordResult(app.getPublicId(), row.seq(), decision, creditLimit);
     }

@@ -53,6 +53,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> {
                     // Liveness probe is public.
                     auth.requestMatchers("/actuator/health").permitAll();
+                    // Service-to-service endpoints bypass HTTP Basic; the InternalTokenFilter enforces
+                    // the shared X-Internal-Token instead (SPEC §15).
+                    auth.requestMatchers("/internal/v1/**").permitAll();
                     // API docs and Swagger UI are exposed in the dev profile only.
                     if (dev) {
                         auth.requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll();

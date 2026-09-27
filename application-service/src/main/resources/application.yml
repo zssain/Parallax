@@ -32,11 +32,16 @@ parallax:
     url: ${PARALLAX_DECISION_URL:http://localhost:8081}
   assistant:
     url: ${PARALLAX_ASSISTANT_URL:http://localhost:8083}
+  accounts:
+    url: ${PARALLAX_ACCOUNTS_URL:http://localhost:8084}
   internal-token: ${INTERNAL_TOKEN:internal-dev}
   # Scheduled recovery jobs (SPEC §6; Prompt 10).
   jobs:
     redecision-ms: ${PARALLAX_JOBS_REDECISION_MS:60000}
     engine-retry-ms: ${PARALLAX_JOBS_ENGINE_RETRY_MS:60000}
+  # Transactional outbox publisher (SPEC §13; Prompt 18): posts ACCOUNT_OPEN_REQUESTED to account-service.
+  outbox:
+    publish-ms: ${PARALLAX_OUTBOX_PUBLISH_MS:5000}
 
 # Resilience around the bureau (circuit breaker) and decision engine (retry) — SPEC §3, Prompt 10.
 resilience4j:
