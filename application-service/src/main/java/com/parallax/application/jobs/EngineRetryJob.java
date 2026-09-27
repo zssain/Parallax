@@ -68,7 +68,8 @@ public class EngineRetryJob {
         this.clock = clock;
     }
 
-    @Scheduled(fixedDelayString = "${parallax.jobs.engine-retry-ms:60000}")
+    @Scheduled(fixedDelayString = "${parallax.jobs.engine-retry-ms:60000}",
+            initialDelayString = "${parallax.jobs.initial-delay-ms:0}")
     void scheduled() {
         runOnce();
     }

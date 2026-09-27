@@ -1,0 +1,64 @@
+name: E2E
+
+# Playwright end-to-end tests against the full docker compose stack. Heavy (builds
+# every image and seeds data), so it runs on demand and nightly, not on every push.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * *'
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Bring up the stack
+        run: |
+          cp .env.example .env
+          docker compose up -d --build
+
+      - name: Wait for the web app to be healthy
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:5173/ >/dev/null 2>&1 \
+               && curl -fsS http://localhost:8080/actuator/health >/dev/null 2>&1; then
+              echo "stack is up"; exit 0
+            fi
+            sleep 5
+          done
+          echo "stack did not become healthy in time" >&2
+          docker compose ps
+          exit 1
+
+      - name: Install web deps and browsers
+        working-directory: web
+        run: |
+          npm ci --legacy-peer-deps
+          npx playwright install --with-deps chromium
+
+      - name: Run Playwright
+        working-directory: web
+        env:
+          E2E_BASE_URL: http://localhost:5173
+        run: npm run e2e
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: web/playwright-report
+          if-no-files-found: ignore
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v

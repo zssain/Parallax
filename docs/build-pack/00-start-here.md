@@ -153,7 +153,7 @@ You can stop after Prompt 15 with a complete, interview-ready backend. Prompts 1
 | SSN `912345678` labelled near-prime in the prototype | Web builds SSNs from the §8 digit mapping; 912345678 is PRIME | 02, 21 |
 | AAN-v1 vs AAN-v2 | Template id `AAN-v2` everywhere | 09 |
 | 100k vs 20k | Compose seeds 20k; the 100k run is measured once and published with machine specs | 12, 13, 23 |
-| “Hindsight” name in the spec footer | Name check in Prompt 23's consistency pass (`grep -ri hindsight` must return nothing) | 23 |
+| Old working codename in the spec footer | Name check in Prompt 23's consistency pass (the earlier codename must not appear in the shipped repo) | 23 |
 | SUBPRIME test SSN left the scenario digit open | Test SSNs pinned: `961234567` (SUBPRIME, NONE), `937123456` (NEAR\_PRIME, ADDRESS\_MISMATCH) | 02, 09 |
 | Drift slider in the prototype had no backend | `POST /api/v1/drift/simulate {shift}` generates labelled synthetic applicants | 15, 22 |
 | Prototype sidebar had no Accounts or Collections | LIFECYCLE nav section added in the same style | 20, 22 |

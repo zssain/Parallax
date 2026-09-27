@@ -52,10 +52,16 @@ public abstract class AbstractPostgresIT {
         // Deterministic 32-byte test keys.
         registry.add("parallax.data-key", () -> TEST_DATA_KEY);
         registry.add("parallax.token-key", () -> TEST_TOKEN_KEY);
-        // Push scheduled job triggers far out so tests drive runOnce() deterministically.
+        // Push scheduled job triggers far out so tests drive runOnce() deterministically. Both the
+        // initial delay AND the fixed delay must be pushed out: without an initial delay a fixedDelay
+        // job still fires once at each context's startup, and with many cached contexts sharing one
+        // Postgres that lets a startup RedecisionJob process another test's leftover BUREAU_UNAVAILABLE
+        // rows against the bureau and trip this context's circuit breaker (intermittent REFER flakes).
         registry.add("parallax.jobs.redecision-ms", () -> "3600000");
         registry.add("parallax.jobs.engine-retry-ms", () -> "3600000");
         registry.add("parallax.outbox.publish-ms", () -> "3600000");
+        registry.add("parallax.jobs.initial-delay-ms", () -> "3600000");
+        registry.add("parallax.outbox.initial-delay-ms", () -> "3600000");
     }
 
     private static byte[] filled(byte value) {

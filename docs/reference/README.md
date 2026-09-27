@@ -1,7 +1,7 @@
 # Repository structure
 
-This repo will become **Parallax**, a Java 21 / Spring Boot credit decisioning platform.
-Nothing has been built yet — the folders below hold the planning inputs.
+**Parallax** is a Java 21 / Spring Boot credit decisioning platform (see the top-level
+[`README.md`](../../README.md)). The folders below hold the planning inputs it was built from.
 
 ## `docs/build-pack/`
 The prompts used to build the project. Run them **in order, one per session**,
@@ -20,6 +20,5 @@ starting with `00-start-here.md`.
 - `README.md` — this file.
 
 ## Archived outside the repo
-The original build spec — `parallax-build-spec-v0-hindsight-name.pdf` — has been moved
-out of the repo to `~/Documents/parallax-archive/`. It uses the old project name
-**"Hindsight"**; the project is the same one, now called **Parallax**.
+The original build-spec PDF has been moved out of the repo to `~/Documents/parallax-archive/`.
+It used an earlier working codename for the same project, since renamed to **Parallax**.

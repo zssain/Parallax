@@ -63,7 +63,8 @@ public class OutboxPublisher {
                 .build();
     }
 
-    @Scheduled(fixedDelayString = "${parallax.outbox.publish-ms:5000}")
+    @Scheduled(fixedDelayString = "${parallax.outbox.publish-ms:5000}",
+            initialDelayString = "${parallax.outbox.initial-delay-ms:0}")
     void scheduled() {
         runOnce();
     }

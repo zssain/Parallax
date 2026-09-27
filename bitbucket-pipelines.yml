@@ -16,3 +16,13 @@ pipelines:
         script:
           - export TESTCONTAINERS_RYUK_DISABLED=true
           - ./mvnw -B verify
+    - step:
+        name: Web build
+        image: node:20
+        caches:
+          - node
+        script:
+          - cd web
+          - npm ci --legacy-peer-deps
+          - npm run lint
+          - npm run build

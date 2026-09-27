@@ -31,4 +31,9 @@ public class BureauCircuitControl {
     public void close() {
         breaker.transitionToClosedState();
     }
+
+    /** Full reset to CLOSED, clearing all recorded calls and metrics (used to isolate tests). */
+    public void reset() {
+        breaker.reset();
+    }
 }

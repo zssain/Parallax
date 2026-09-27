@@ -86,7 +86,7 @@ public abstract class AbstractIntakeIT extends AbstractPostgresIT {
     @BeforeEach
     void resetBureauAndDatabase() throws Exception {
         BUREAU.resetAll();
-        bureauCircuit.close(); // reset the shared circuit breaker between tests
+        bureauCircuit.reset(); // fully reset the shared circuit breaker (state + metrics) between tests
         stubDecisionEngineInProcess();
         String url = "jdbc:postgresql://" + POSTGRES.getHost() + ":" + POSTGRES.getMappedPort(5432) + "/parallax";
         try (Connection c = DriverManager.getConnection(url, "parallax_owner", "owner-dev");

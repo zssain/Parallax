@@ -75,7 +75,8 @@ public class RedecisionJob {
         this.circuit = circuit;
     }
 
-    @Scheduled(fixedDelayString = "${parallax.jobs.redecision-ms:60000}")
+    @Scheduled(fixedDelayString = "${parallax.jobs.redecision-ms:60000}",
+            initialDelayString = "${parallax.jobs.initial-delay-ms:0}")
     void scheduled() {
         runOnce();
     }

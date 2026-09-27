@@ -1,0 +1,12 @@
+# Keep the Docker build context small and reproducible.
+**/target
+web/node_modules
+web/dist
+web/test-results
+web/playwright-report
+node_modules
+.git
+docs/screenshots
+*.log
+.DS_Store
+.env

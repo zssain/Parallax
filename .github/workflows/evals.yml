@@ -1,0 +1,54 @@
+name: Assistant evals
+
+# Runs the 15-item assistant eval set against a seeded stack. Manual only: it calls a
+# real LLM and needs the ANTHROPIC_API_KEY repository secret. No key -> the runner is
+# disabled (@EnabledIfEnvironmentVariable), so this never runs silently for free.
+on:
+  workflow_dispatch:
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Bring up the seeded stack
+        run: |
+          cp .env.example .env
+          docker compose up -d --build application-service
+
+      - name: Wait for application-service
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:8080/actuator/health >/dev/null 2>&1; then exit 0; fi
+            sleep 5
+          done
+          echo "application-service did not become healthy" >&2
+          docker compose ps
+          exit 1
+
+      - name: Run evals
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PARALLAX_BASE_URL: http://localhost:8080
+        run: ./mvnw -B -pl assistant-service verify -Dgroups=evals
+
+      - name: Upload eval results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results
+          path: evals/results/
+          if-no-files-found: ignore
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
