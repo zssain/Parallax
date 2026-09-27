@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PageHeader, Card, OutcomePill } from '../ui/components'
+import { PageHeader, Kpi, OutcomePill } from '../ui/components'
 import { useLedger, useLedgerStats, useVerifyChain, useAttemptUpdate, useTamperTest } from '../api/hooks'
 import { useToast } from '../app/ToastProvider'
 import { fmtTs } from '../ui/format'
@@ -17,16 +17,18 @@ export function Ledger() {
   const [result, setResult] = useState<ReactNode>(null)
 
   const rows = (data?.pages || []).flatMap((p) => p.items)
+  // Chain head: the latest links, oldest → newest (rows come back newest-first).
+  const tail = rows.slice(0, 6).reverse()
 
   function doVerify() {
     verify.mutate(undefined, {
       onSuccess: (r) => {
         setResult(
-          <Card style={{ marginBottom: 20, borderColor: r.ok ? 'var(--ok)' : 'var(--bad)' }}>
+          <div className="tile w fade" style={{ marginBottom: 14, borderColor: r.ok ? 'var(--moss)' : 'var(--rust)' }}>
             <b className={r.ok ? 't-ok' : 't-bad'}>
-              {r.ok ? `✓ Chain intact — ${r.checked} records verified from genesis` : `✗ Chain broken at seq #${r.brokenAtSeq}`}
+              {r.ok ? `✓ Chain intact — ${r.checked} records verified from genesis` : `✕ Chain broken at seq #${r.brokenAtSeq}`}
             </b>
-          </Card>,
+          </div>,
         )
         toast(r.ok ? 'Chain verified ✓' : 'Chain broken', r.ok ? 'ok' : 'bad')
       },
@@ -36,9 +38,9 @@ export function Ledger() {
     attempt.mutate(undefined, {
       onSuccess: (d) => {
         setResult(
-          <Card style={{ marginBottom: 20 }}>
+          <div className="tile w fade" style={{ marginBottom: 14 }}>
             <div className="code">{`parallax=> ${d.statement};\n${d.error}\n-- role parallax_app has INSERT and SELECT only`}</div>
-          </Card>,
+          </div>,
         )
       },
     })
@@ -47,13 +49,13 @@ export function Ledger() {
     tamper.mutate(undefined, {
       onSuccess: (t) => {
         setResult(
-          <Card style={{ marginBottom: 20, borderColor: 'var(--bad)' }}>
+          <div className="tile w fade" style={{ marginBottom: 14, borderColor: 'var(--rust)' }}>
             <b>Tamper test on a copy:</b> changed seq #{t.modifiedSeq} to APPROVED with a $25,000 limit, bypassing the
             database.
             <br />
             <b className="t-bad">Verification: chain breaks at seq #{t.brokenAtSeq}</b> — the stored hash no longer matches
             the record's content, and every later link depends on it.
-          </Card>,
+          </div>,
         )
       },
     })
@@ -62,9 +64,12 @@ export function Ledger() {
   return (
     <>
       <PageHeader
-        eyebrow="Decision ledger"
-        title="Append-only, hash-chained"
-        description="Every decision, override, re-decision and promotion. The service role has no UPDATE or DELETE grant; each record stores the hash of the one before it."
+        title={
+          <>
+            Decision <em>ledger</em>
+          </>
+        }
+        description="Append-only and hash-chained. The service role has no UPDATE or DELETE grant; each record stores the hash of the one before it."
         right={
           <>
             <button className="btn" onClick={doAttempt}>
@@ -79,32 +84,37 @@ export function Ledger() {
           </>
         }
       />
-      <div className="kpis k4">
-        <div className="kpi">
-          <div className="lbl">Records</div>
-          <div className="v">{stats?.records ?? '—'}</div>
-          <small>all kinds</small>
+
+      <div className="g" style={{ gridTemplateColumns: 'repeat(4,1fr)' }}>
+        <Kpi label="Records" value={stats?.records ?? '—'} sub="all kinds" />
+        <Kpi label="Decisions" value={stats?.decisions ?? '—'} sub="engine outcomes" />
+        <Kpi label="Overrides" value={stats?.overrides ?? '—'} sub="underwriter reviews" />
+        <Kpi label="Governance" value={stats?.governance ?? '—'} sub="promotions & rollbacks" />
+      </div>
+
+      <div className="tile" style={{ marginBottom: 14 }}>
+        <div className="th">
+          <h3>Chain head</h3>
+          <span className="lbl">latest {tail.length} links</span>
         </div>
-        <div className="kpi">
-          <div className="lbl">Decisions</div>
-          <div className="v">{stats?.decisions ?? '—'}</div>
-          <small>engine outcomes</small>
-        </div>
-        <div className="kpi">
-          <div className="lbl">Overrides</div>
-          <div className="v">{stats?.overrides ?? '—'}</div>
-          <small>underwriter reviews</small>
-        </div>
-        <div className="kpi">
-          <div className="lbl">Governance</div>
-          <div className="v">{stats?.governance ?? '—'}</div>
-          <small>promotions &amp; rollbacks</small>
+        <div className="chain">
+          {tail.map((r, i) => (
+            <div key={r.seq} style={{ display: 'contents' }}>
+              {i ? <span className="lnk" /> : null}
+              <div className="blk">
+                <div className="k">{r.kind}</div>
+                <b>#{r.seq}</b>
+                <div>prev {(r.prevHash || '').slice(0, 8)}</div>
+                <div style={{ color: 'var(--ink)' }}>hash {(r.hash || '').slice(0, 8)}</div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {result}
+      <div id="vres">{result}</div>
 
-      <Card>
+      <div className="tile w">
         <table>
           <thead>
             <tr>
@@ -126,7 +136,7 @@ export function Ledger() {
               >
                 <td className="mono">#{r.seq}</td>
                 <td>
-                  <span className="pill">{r.kind}</span>
+                  <span className="pill2">{r.kind}</span>
                 </td>
                 <td>
                   {r.applicationId ? (
@@ -139,7 +149,7 @@ export function Ledger() {
                 </td>
                 <td>{r.outcome ? <OutcomePill outcome={r.outcome} /> : '—'}</td>
                 <td className="mono">{r.ruleVersion || '—'}</td>
-                <td className="t-muted">{fmtTs(r.createdAt)}</td>
+                <td className="t-muted mono">{fmtTs(r.createdAt)}</td>
                 <td className="hash">
                   {(r.prevHash || '').slice(0, 8)}… → {(r.hash || '').slice(0, 8)}…
                 </td>
@@ -155,8 +165,11 @@ export function Ledger() {
           )}
           <span className="sp" />
         </div>
-        <p className="note">Hashes are SHA-256 over canonical JSON; inserts are serialized by a Postgres advisory lock.</p>
-      </Card>
+        <p className="note">
+          Demo uses an FNV-based 64-bit hash in the browser; the real service uses SHA-256 with inserts serialized by a
+          Postgres advisory lock.
+        </p>
+      </div>
     </>
   )
 }

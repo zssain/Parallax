@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PageHeader, Card } from '../ui/components'
+import { PageHeader } from '../ui/components'
 import { useCollectionsSummary, useCollections, useCollectionAction } from '../api/hooks'
 import { useModal } from '../app/ModalProvider'
 import { useToast } from '../app/ToastProvider'
@@ -79,31 +79,38 @@ export function Collections() {
 
   return (
     <>
-      <PageHeader eyebrow="Lifecycle" title="Collections" description="Delinquent accounts by bucket, prioritised for outreach." />
-      <div className="kpis k4">
+      <PageHeader
+        title={
+          <>
+            <em>Collections</em>
+          </>
+        }
+        description="Delinquent accounts by bucket, prioritised for outreach."
+      />
+      <div className="bento" style={{ marginBottom: 26 }}>
         {buckets.map((b) => (
           <div
             key={b.bucket}
-            className="kpi"
-            style={{ cursor: 'pointer', background: bucket === b.bucket ? 'var(--accbg)' : undefined }}
+            className={`tile s3 cl${bucket === b.bucket ? ' on' : ''}`}
+            style={{ background: bucket === b.bucket ? 'var(--goldbg)' : undefined }}
             onClick={() => setBucket(bucket === b.bucket ? 'ALL' : b.bucket || 'ALL')}
           >
             <div className="lbl">{b.bucket} DPD</div>
-            <div className="v">{fmt(b.count || 0)}</div>
-            <small>{moneyCents(b.amountDueCents || 0)} due</small>
+            <div className="big">{fmt(b.count || 0)}</div>
+            <small className="t-muted">{moneyCents(b.amountDueCents || 0)} due</small>
           </div>
         ))}
       </div>
 
-      <Card>
-        <h3>
-          Work queue{' '}
+      <div className="tile w">
+        <div className="th">
+          <h3>Work queue</h3>
           {bucket !== 'ALL' && (
             <button className="link" onClick={() => setBucket('ALL')}>
-              clear filter ({bucket})
+              clear filter ({bucket}) →
             </button>
           )}
-        </h3>
+        </div>
         {items.length ? (
           <table>
             <thead>
@@ -126,13 +133,13 @@ export function Collections() {
                     <b>{c.accountId}</b>
                   </td>
                   <td>{c.displayName}</td>
-                  <td className="t-bad">{c.daysPastDue}</td>
-                  <td>{c.bucket}</td>
-                  <td>{moneyCents(c.amountDueCents || 0)}</td>
-                  <td>{moneyCents(c.balanceCents || 0)}</td>
-                  <td className="t-muted">{c.lastContactAt ? fmtTs(c.lastContactAt) : '—'}</td>
+                  <td className="t-bad mono">{c.daysPastDue}</td>
+                  <td className="mono">{c.bucket}</td>
+                  <td className="mono">{moneyCents(c.amountDueCents || 0)}</td>
+                  <td className="mono">{moneyCents(c.balanceCents || 0)}</td>
+                  <td className="t-muted mono">{c.lastContactAt ? fmtTs(c.lastContactAt) : '—'}</td>
                   <td>
-                    <span className={`pill ${PRIORITY_CLASS[c.priority || 'LOW']}`}>{c.priority}</span>
+                    <span className={`pill2 ${PRIORITY_CLASS[c.priority || 'LOW']}`}>{c.priority}</span>
                   </td>
                   <td>
                     <div className="row">
@@ -151,7 +158,7 @@ export function Collections() {
         ) : (
           <div className="empty">No delinquent accounts. Miss a payment under Accounts → Simulate a month to see one here.</div>
         )}
-      </Card>
+      </div>
     </>
   )
 }

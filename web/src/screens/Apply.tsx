@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PageHeader, LiveChips, Card, OutcomePill } from '../ui/components'
+import { PageHeader, OutcomePill } from '../ui/components'
 import { useLiveVersion, useSubmitApplication } from '../api/hooks'
 import { useModal } from '../app/ModalProvider'
 import { useToast } from '../app/ToastProvider'
@@ -120,8 +120,8 @@ function PipelineFrame({
         })}
       </div>
       {result && (
-        <div className="row" style={{ marginTop: 20 }}>
-          <span>Result:</span> {!result.pending && <OutcomePill outcome={result.outcome} />}{' '}
+        <div className="pres row" style={{ marginTop: 20 }}>
+          {!result.pending && <OutcomePill outcome={result.outcome} />}{' '}
           <span className="t-muted">
             {result.pending
               ? 'queued for retry'
@@ -312,15 +312,19 @@ export function Apply() {
   return (
     <>
       <PageHeader
-        eyebrow="New application"
-        title="Submit a credit application"
-        description="Runs the full pipeline: validation, idempotency, SOAP bureau pull, fraud screen, decision engine and a transactional ledger write."
-        right={<LiveChips />}
+        title={
+          <>
+            New <em>application</em>
+          </>
+        }
+        description="Runs validation, idempotency, the SOAP bureau pull, fraud screening, the engine and a single-transaction ledger write."
       />
       <div className="g g21">
-        <Card>
+        <div className="tile w" style={{ padding: '30px 32px' }}>
           <div className="form">
-            <div className="fsec">Applicant</div>
+            <div className="fsec">
+              <small>A</small>Applicant
+            </div>
             <div className={fieldCls('firstName')}>
               <label>First name</label>
               <input value={form.firstName} onChange={(e) => change('firstName', e.target.value)} />
@@ -334,10 +338,10 @@ export function Apply() {
             <div className={fieldCls('dateOfBirth')}>
               <label>Date of birth</label>
               <input type="date" value={form.dateOfBirth} onChange={(e) => change('dateOfBirth', e.target.value)} />
-              <div className="h">{errors.dateOfBirth || 'Legal capacity: 18+; under 21 needs independent income'}</div>
+              <div className="h">{errors.dateOfBirth || '18+ required; under 21 needs independent income'}</div>
             </div>
             <div className={fieldCls('ssn')}>
-              <label>SSN (synthetic, 9 digits)</label>
+              <label>SSN · synthetic, 9 digits</label>
               <input value={ssn} onChange={(e) => setSsn(e.target.value)} />
               <div className="h">{errors.ssn || 'Encrypted at rest · masked in logs'}</div>
             </div>
@@ -347,9 +351,14 @@ export function Apply() {
               <div className="h">{errors.address || 'Compared against the bureau file address'}</div>
             </div>
 
-            <div className="fsec">Financials (monthly unless noted)</div>
+            <div className="fsec">
+              <small>B</small>Financials{' '}
+              <span className="t-muted" style={{ fontSize: 13, fontFamily: 'var(--sans)' }}>
+                monthly unless noted
+              </span>
+            </div>
             <div className={fieldCls('annualIncome')}>
-              <label>Annual income (USD)</label>
+              <label>Annual income · USD</label>
               <input type="number" value={form.annualIncome} onChange={(e) => change('annualIncome', e.target.value)} />
               <div className="h">{errors.annualIncome || ''}</div>
             </div>
@@ -372,7 +381,9 @@ export function Apply() {
               <div className="h">Only matters under age 21</div>
             </div>
 
-            <div className="fsec">Product &amp; demo controls</div>
+            <div className="fsec">
+              <small>C</small>Product &amp; demo controls
+            </div>
             <div className="f">
               <label>Card product</label>
               <select value={form.product} onChange={(e) => change('product', e.target.value)}>
@@ -410,7 +421,7 @@ export function Apply() {
               consents to a credit bureau inquiry (hard pull).
             </label>
           </div>
-          <div className="row" style={{ marginTop: 22 }}>
+          <div className="row" style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid var(--line)' }}>
             <button className="btn" onClick={reset}>
               Reset
             </button>
@@ -419,25 +430,17 @@ export function Apply() {
               Simulate double-click
             </button>
             <button className="btn p" onClick={() => doSubmit(false)}>
-              Submit for decision ↗
+              Submit for decision →
             </button>
           </div>
-        </Card>
+        </div>
 
-        <div>
-          <Card style={{ marginBottom: 20 }}>
-            <h3>Request</h3>
-            <div className="lbl">POST /api/v1/applications</div>
-            <div className="note" style={{ margin: '6px 0 12px' }}>
-              Idempotency-Key: <span className="mono t-acc">{idemKey}</span>{' '}
-              <button className="link" style={{ fontSize: 12 }} onClick={() => setIdemKey(randKey())}>
-                new key
-              </button>
+        <div className="stick">
+          <div className="tile" style={{ marginBottom: 14 }}>
+            <div className="th">
+              <h3>Pre-check</h3>
+              <span className="lbl">client estimate</span>
             </div>
-            <div className="code">{JSON.stringify(preview, null, 2)}</div>
-          </Card>
-          <Card>
-            <h3>Live pre-check</h3>
             <div className="chkrow">
               <span>Age at application</span>
               <b>{isNaN(age) ? '—' : age}</b>
@@ -454,8 +457,21 @@ export function Apply() {
               <span>Debt-to-income</span>
               <b>{pct(dti, 0)}</b>
             </div>
-            <div className="note">Client-side estimate only. The engine is the source of truth.</div>
-          </Card>
+            <div className="note">The engine is the source of truth.</div>
+          </div>
+          <div className="tile">
+            <div className="th">
+              <h3>Request</h3>
+              <span className="lbl">POST /api/v1/applications</span>
+            </div>
+            <div className="note" style={{ margin: '0 0 10px' }}>
+              Idempotency-Key <span className="mono t-acc">{idemKey}</span> ·{' '}
+              <button className="link" style={{ fontSize: 12 }} onClick={() => setIdemKey(randKey())}>
+                new key
+              </button>
+            </div>
+            <div className="code">{JSON.stringify(preview, null, 2)}</div>
+          </div>
         </div>
       </div>
     </>

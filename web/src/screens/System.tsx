@@ -1,7 +1,7 @@
 import { PageHeader, LiveChips, Card } from '../ui/components'
 import { useSystemStatus, useIdempotencyKeys, useBureauPulls, useBureauFault } from '../api/hooks'
 import { useToast } from '../app/ToastProvider'
-import { cap, fmtTs } from '../ui/format'
+import { cap } from '../ui/format'
 
 export function System() {
   const { toast } = useToast()
@@ -34,33 +34,35 @@ export function System() {
   return (
     <>
       <PageHeader
-        eyebrow="System"
-        title="Health, resilience and plumbing"
+        title="System"
         description="Service health, the bureau circuit breaker, automatic re-decisions, idempotency keys and bureau report reuse."
         right={<LiveChips />}
       />
       <div className="g g3">
-        <Card>
-          <h3>Services</h3>
+        <div className="tile">
+          <div className="th">
+            <h3>Services</h3>
+            <span className="lbl">/health</span>
+          </div>
           {services.map((s) => (
             <div className="svc" key={s.name}>
               <span>
-                <i className="dot" style={{ background: s.status === 'UP' ? 'var(--ok)' : 'var(--bad)' }} />
+                <i className="dot" style={{ background: s.status === 'UP' ? 'var(--moss)' : 'var(--rust)' }} />
                 {s.name}
               </span>
               <span className="t-muted mono">{s.status === 'DOWN' ? 'timeout' : s.latencyMs != null ? `${s.latencyMs} ms` : '—'}</span>
             </div>
           ))}
-          <p className="note">From Spring Actuator /health on each service.</p>
-        </Card>
+        </div>
 
-        <Card>
-          <h3>
-            Bureau circuit breaker <span className={`st ${circuit === 'OPEN' ? 'DRAFT' : 'LIVE'}`}>{circuit}</span>
-          </h3>
+        <div className="tile" style={circuit === 'OPEN' ? { borderColor: 'var(--rust)' } : undefined}>
+          <div className="th">
+            <h3>Bureau circuit</h3>
+            <span className={`st ${circuit === 'OPEN' ? 'DRAFT' : 'LIVE'}`}>{circuit}</span>
+          </div>
           <p className="t-muted" style={{ lineHeight: 1.6, marginBottom: 16 }}>
-            Resilience4j wraps the SOAP call with a timeout and circuit breaker. When OPEN, new applications go to REFER
-            (B01) instead of failing, and queue for re-decision.
+            Resilience4j wraps the SOAP call with a timeout and breaker. When OPEN, new applications go to REFER (B01) instead of
+            failing, and queue for re-decision.
           </p>
           {circuit === 'CLOSED' ? (
             <button className="btn bad" onClick={() => setBureau('DOWN')}>
@@ -68,15 +70,16 @@ export function System() {
             </button>
           ) : (
             <button className="btn p" onClick={() => setBureau('NONE')}>
-              Restore bureau &amp; run re-decision job
+              Restore &amp; run re-decision job
             </button>
           )}
-        </Card>
+        </div>
 
-        <Card>
-          <h3>
-            Re-decision queue <span className="chipbox">{redecide.length}</span>
-          </h3>
+        <div className="tile">
+          <div className="th">
+            <h3>Re-decision queue</h3>
+            <span className="chip">{redecide.length}</span>
+          </div>
           {redecide.length ? (
             redecide.map((r) => (
               <div className="svc" key={r.applicationId}>
@@ -89,13 +92,16 @@ export function System() {
               Empty
             </div>
           )}
-          <p className="note">Bureau-outage REFERs are re-decided automatically once the circuit closes, so they are never a dead end.</p>
-        </Card>
+          <p className="note">Outage refers re-decide automatically once the circuit closes — never a dead end.</p>
+        </div>
       </div>
 
       <div className="g g2">
         <Card>
-          <h3>Idempotency keys</h3>
+          <div className="th">
+            <h3>Idempotency keys</h3>
+            <span className="lbl">24 h ttl</span>
+          </div>
           {keys && keys.length ? (
             <table>
               <thead>
@@ -103,7 +109,6 @@ export function System() {
                   <th>Key</th>
                   <th>State</th>
                   <th>Application</th>
-                  <th>Expires</th>
                 </tr>
               </thead>
               <tbody>
@@ -111,10 +116,9 @@ export function System() {
                   <tr key={k.key}>
                     <td className="mono">{k.key}</td>
                     <td>
-                      <span className="pill">{k.state}</span>
+                      <span className="pill2">{k.state}</span>
                     </td>
                     <td className="mono">{k.applicationId || '—'}</td>
-                    <td className="t-muted">{fmtTs(k.expiresAt)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -126,9 +130,10 @@ export function System() {
         </Card>
 
         <Card>
-          <h3>
-            Bureau pulls <span className="lbl">reuse window 30 days</span>
-          </h3>
+          <div className="th">
+            <h3>Bureau pulls</h3>
+            <span className="lbl">reuse window 30 days</span>
+          </div>
           <table>
             <thead>
               <tr>
@@ -143,7 +148,7 @@ export function System() {
                 <tr key={p.pullId}>
                   <td className="mono">{p.pullId}</td>
                   <td>
-                    <span className="pill">{p.pullType}</span>
+                    <span className="pill2">{p.pullType}</span>
                   </td>
                   <td>{p.profile ? cap(p.profile.replace('_', '-')) : '—'}</td>
                   <td className="mono">***-**-{p.ssnLast4}</td>
@@ -151,10 +156,7 @@ export function System() {
               ))}
             </tbody>
           </table>
-          <p className="note">
-            A report pulled within the window is reused and the decision records which pull it used. Soft pulls are reserved
-            for prequalification.
-          </p>
+          <p className="note">A report pulled within the window is reused, and the decision records which pull it used.</p>
         </Card>
       </div>
     </>

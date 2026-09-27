@@ -4,68 +4,84 @@ import { fmtTs, money } from './format'
 import { useSystemStatus } from '../api/hooks'
 import type { ListItem } from '../api/types'
 
+// The prototype's OCM: outcome → [glyph, label]. `oc(outcome)` renders the icon-chip.
+export const OCM: Record<string, [string, string]> = {
+  APPROVED: ['✓', 'Approved'],
+  REFER: ['◐', 'Refer'],
+  DECLINED: ['✕', 'Declined'],
+}
+
+/** The prototype's kpi(): a tile with an uppercase label, a big number and a muted sub-line. */
 export function Kpi({ label, value, sub, cls }: { label: string; value: ReactNode; sub?: ReactNode; cls?: string }) {
   return (
-    <div className="kpi">
+    <div className="tile">
       <div className="lbl">{label}</div>
-      <div className={`v ${cls || ''}`}>{value}</div>
-      {sub != null && <small>{sub}</small>}
+      <div className={`big ${cls || ''}`} style={{ fontSize: 40 }}>
+        {value}
+      </div>
+      {sub != null && <small className="t-muted">{sub}</small>}
     </div>
   )
 }
 
+/** The prototype's oc(): an outcome chip with a coloured glyph. */
 export function OutcomePill({ outcome }: { outcome?: string | null }) {
-  if (!outcome) return <>—</>
-  return <span className={`oc ${outcome}`}>{outcome}</span>
+  if (!outcome || !OCM[outcome]) return <>—</>
+  return (
+    <span className={`oc ${outcome}`}>
+      <i>{OCM[outcome][0]}</i>
+      {OCM[outcome][1]}
+    </span>
+  )
 }
 
 export function StatusChip({ status }: { status?: string }) {
   return <span className={`st ${status || ''}`}>{status}</span>
 }
 
+/** A tile card (the prototype's `.tile`; add `w` for the paper-white variant). */
 export function Card({ children, className, style }: { children: ReactNode; className?: string; style?: React.CSSProperties }) {
   return (
-    <div className={`card ${className || ''}`} style={style}>
+    <div className={`tile w ${className || ''}`} style={style}>
       {children}
     </div>
   )
 }
 
-/** PageHeader = the prototype's head(eyebrow, title, description, right). */
+/** PageHeader = the prototype's head(title, description, right). Title may include <em>. */
 export function PageHeader({
-  eyebrow,
   title,
   description,
   right,
 }: {
-  eyebrow: string
   title: ReactNode
   description: string
   right?: ReactNode
 }) {
   return (
-    <section className="phead">
+    <section className="ph">
       <div>
-        <div className="eyebrow">
-          <i />
-          {eyebrow}
-        </div>
         <h1>{title}</h1>
         <p>{description}</p>
       </div>
-      <div className="phead-r">{right}</div>
+      <div className="ph-r">{right}</div>
     </section>
   )
 }
 
-/** "Live data" / "Bureau outage" dot + "Rules vX" chip, from GET /system/status (refetched 15s). */
+/** The top-bar bureau + rules chips, from GET /system/status (refetched 15s). */
 export function LiveChips() {
   const { data } = useSystemStatus({ refetchInterval: 15000 })
   const down = data?.bureauCircuit === 'OPEN'
   return (
     <>
-      <span className={`dotl ${down ? 'down' : ''}`}>{down ? 'Bureau outage' : 'Live data'}</span>
-      <span className="chipbox">Rules {data?.liveVersion || '—'}</span>
+      <span className={`chip ${down ? 'down' : ''}`}>
+        <i />
+        {down ? 'Bureau down' : 'Bureau live'}
+      </span>
+      <span className="chip">
+        <b>Rules</b> {data?.liveVersion || '—'}
+      </span>
     </>
   )
 }
@@ -95,16 +111,16 @@ export function DecisionTable({ rows }: { rows: ListItem[] }) {
               <b>{r.applicationId}</b>
             </td>
             <td>{r.displayName}</td>
-            <td>{r.product}</td>
-            <td>{r.score ?? '—'}</td>
+            <td className="t-muted">{r.product}</td>
+            <td className="mono">{r.score ?? '—'}</td>
             <td>
               <OutcomePill outcome={r.outcome} />
-              {r.currentKind === 'OVERRIDE' && <span className="pill"> override</span>}
-              {r.currentKind === 'REDECISION' && <span className="pill"> re-decided</span>}
+              {r.currentKind === 'OVERRIDE' && <span className="pill2"> override</span>}
+              {r.currentKind === 'REDECISION' && <span className="pill2"> re-decided</span>}
             </td>
-            <td>{r.creditLimit ? money(r.creditLimit) : '—'}</td>
+            <td className="mono">{r.creditLimit ? money(r.creditLimit) : '—'}</td>
             <td className="mono">{r.ruleVersion}</td>
-            <td className="t-muted">{fmtTs(r.recordedAt)}</td>
+            <td className="t-muted mono">{fmtTs(r.recordedAt)}</td>
           </tr>
         ))}
       </tbody>

@@ -1,11 +1,12 @@
 import { useNavigate } from 'react-router-dom'
-import { PageHeader, LiveChips, Kpi, Card, DecisionTable } from '../ui/components'
+import { PageHeader, DecisionTable } from '../ui/components'
 import { useOverview } from '../api/hooks'
+import { useAuth } from '../app/AuthProvider'
 import { fmtMonth, pct, psiCls } from '../ui/format'
 import type { Attention } from '../api/types'
 
 const W = 520
-const H = 120
+const H = 100
 
 function attTarget(target?: string): string {
   if (!target) return '/app'
@@ -13,16 +14,41 @@ function attTarget(target?: string): string {
   return `/app/${target}`
 }
 
+// Attention rows carry a severity + target but no short label; derive one for the .ac card heading.
+function attLabel(a: Attention): string {
+  const t = (a.target || '').split(':')[0]
+  const map: Record<string, string> = {
+    queue: 'QUEUE',
+    lab: 'APPROVAL',
+    system: 'SYSTEM',
+    drift: 'DRIFT',
+    shadow: 'SHADOW',
+  }
+  return map[t] || (a.severity || 'NOTE').toUpperCase()
+}
+
 export function Overview() {
   const navigate = useNavigate()
+  const { me } = useAuth()
   const { data, isLoading } = useOverview()
+
+  const firstName = (me?.displayName || '').split(' ')[0]
+  const hr = new Date().getHours()
+  const greet = hr < 12 ? 'morning' : hr < 17 ? 'afternoon' : 'evening'
 
   const header = (
     <PageHeader
-      eyebrow="Overview"
-      title="Portfolio at a glance"
-      description="Live decisions, the rules behind them and what needs attention. Every figure here is read from the decision ledger."
-      right={<LiveChips />}
+      title={
+        <>
+          Good {greet}, <em>{firstName}.</em>
+        </>
+      }
+      description="Everything on this page is read straight from the decision ledger."
+      right={
+        <button className="btn p" onClick={() => navigate('/app/apply')}>
+          + New application
+        </button>
+      }
     />
   )
   if (isLoading || !data) return header
@@ -33,20 +59,20 @@ export function Overview() {
   const dc = data.declined ?? 0
   const q = data.reviewQueue ?? 0
   const psi = data.psi
+  const lv = data.liveVersion
   const attention = (data.attention ?? []) as Attention[]
 
-  // Trend polyline over the 12 months, skipping any null-rate months.
+  // Trend polyline + filled area over the 12 months, skipping any null-rate months.
   const trend = data.approvalTrend ?? []
   const pts = trend.map((p, i) => ({ i, rate: p.rate })).filter((p) => p.rate != null) as { i: number; rate: number }[]
   const rates = pts.map((p) => p.rate)
   const mn = Math.min(...rates) - 0.02
   const mx = Math.max(...rates) + 0.02
   const denom = trend.length > 1 ? trend.length - 1 : 1
-  const xy = (i: number, rate: number) => ({
-    x: (i / denom) * W,
-    y: H - ((rate - mn) / (mx - mn)) * H,
-  })
-  const polyline = pts.map((p) => { const c = xy(p.i, p.rate); return `${c.x.toFixed(1)},${c.y.toFixed(1)}` }).join(' ')
+  const xy = (i: number, rate: number) => ({ x: (i / denom) * W, y: H - ((rate - mn) / (mx - mn)) * H })
+  const P = pts.map((p) => xy(p.i, p.rate))
+  const line = P.map((c) => `${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(' ')
+  const area = P.length ? `M${P[0].x.toFixed(1)},${H} L${line.split(' ').join(' L')} L${P[P.length - 1].x.toFixed(1)},${H} Z` : ''
   const firstLabel = trend.length ? fmtMonth(trend[0].month!) : ''
   const last = trend.length ? trend[trend.length - 1] : undefined
   const lastLabel = last ? `${fmtMonth(last.month!)} · ${last.rate != null ? pct(last.rate, 1) : '—'}` : ''
@@ -54,40 +80,20 @@ export function Overview() {
   return (
     <>
       {header}
-      <div className="kpis">
-        <Kpi label="Decisions" value={n} sub="applications in ledger" />
-        <Kpi label="Approval rate" value={pct(data.approvalRate ?? 0, 1)} sub={`${ap} approved`} />
-        <Kpi label="Review queue" value={q} sub="open REFERs" cls={q > 0 ? 't-warn' : ''} />
-        <Kpi label="Live rules" value={data.liveVersion?.version || '—'} sub={`since ${data.liveVersion?.since || '—'}`} cls="t-acc" />
-        <Kpi
-          label="Score drift (PSI)"
-          value={psi?.value != null ? psi.value.toFixed(3) : '—'}
-          sub={psi?.status || '—'}
-          cls={psiCls(psi?.status)}
-        />
-      </div>
-
-      <div className="g g12">
-        <Card>
-          <h3>Needs attention</h3>
-          {attention.map((a, i) => (
-            <div key={i} className="att" onClick={() => navigate(attTarget(a.target))}>
-              <i className={a.severity} />
-              <b>{a.message}</b>
-              <span className="t-muted">→</span>
-            </div>
-          ))}
-          {!attention.length && <div className="empty">Nothing needs attention.</div>}
-        </Card>
-
-        <Card>
-          <h3>
-            Outcome mix <span className="lbl">current decisions</span>
-          </h3>
+      <div className="bento" style={{ marginBottom: 26 }}>
+        <div className="tile w s5 r2">
+          <div className="th">
+            <h3>Approval rate</h3>
+            <span className="lbl">current</span>
+          </div>
+          <div className="big huge">{pct(data.approvalRate ?? 0, 1)}</div>
+          <div className="t-muted">
+            {ap} of {n} applications approved
+          </div>
           <div className="stack">
-            <div style={{ width: `${n ? (ap / n) * 100 : 0}%`, background: 'var(--ok)' }} />
-            <div style={{ width: `${n ? (rf / n) * 100 : 0}%`, background: 'var(--warn)' }} />
-            <div style={{ width: `${n ? (dc / n) * 100 : 0}%`, background: 'var(--bad)' }} />
+            <div style={{ width: `${n ? (ap / n) * 100 : 0}%`, background: 'var(--moss)' }} />
+            <div style={{ width: `${n ? (rf / n) * 100 : 0}%`, background: 'var(--ochre)' }} />
+            <div style={{ width: `${n ? (dc / n) * 100 : 0}%`, background: 'var(--rust)' }} />
           </div>
           <div className="legend">
             <span>
@@ -100,34 +106,68 @@ export function Overview() {
               <b className="t-bad">{dc}</b> declined
             </span>
           </div>
-          <div style={{ marginTop: 26 }} className="lbl">
+          <div className="lbl" style={{ marginTop: 26 }}>
             Approval rate · last 12 months
           </div>
-          <svg viewBox={`-4 -8 ${W + 8} ${H + 26}`} style={{ width: '100%', height: 150, marginTop: 10 }}>
-            <polyline points={polyline} fill="none" stroke="var(--acc)" strokeWidth="2.5" />
-            {pts.map((p) => {
-              const c = xy(p.i, p.rate)
-              return <circle key={p.i} cx={c.x} cy={c.y} r="3" fill="var(--acc)" />
-            })}
-            <text x="0" y={H + 18} fontSize="11" fill="var(--muted)">
+          <svg viewBox={`-4 -10 ${W + 8} ${H + 30}`} style={{ width: '100%', height: 140, marginTop: 8 }}>
+            {area && <path d={area} fill="var(--goldbg)" />}
+            <polyline points={line} fill="none" stroke="var(--gold)" strokeWidth="2" />
+            {P.map((c, i) => (
+              <circle key={i} cx={c.x} cy={c.y} r="2.6" fill="var(--card)" stroke="var(--gold)" strokeWidth="1.5" />
+            ))}
+            <text x="0" y={H + 18} fontSize="10" fill="var(--muted)" fontFamily="ui-monospace,monospace">
               {firstLabel}
             </text>
-            <text x={W} y={H + 18} fontSize="11" fill="var(--muted)" textAnchor="end">
+            <text x={W} y={H + 18} fontSize="10" fill="var(--muted)" textAnchor="end" fontFamily="ui-monospace,monospace">
               {lastLabel}
             </text>
           </svg>
-        </Card>
+        </div>
+        <div className="tile s3 cl" onClick={() => navigate('/app/decisions')}>
+          <div className="lbl">Decisions</div>
+          <div className="big">{n}</div>
+          <small className="t-muted">in the ledger →</small>
+        </div>
+        <div className="tile s4 cl" onClick={() => navigate('/app/queue')}>
+          <div className="lbl">Review queue</div>
+          <div className={`big ${q ? 't-warn' : ''}`}>{q}</div>
+          <small className="t-muted">open refers →</small>
+        </div>
+        <div className="tile s3 cl" onClick={() => navigate('/app/lab')}>
+          <div className="lbl">Live rules</div>
+          <div className="big">{lv?.version || '—'}</div>
+          <small className="t-muted">since {lv?.since || '—'}</small>
+        </div>
+        <div className="tile s4 cl" onClick={() => navigate('/app/drift')}>
+          <div className="lbl">Score drift · PSI</div>
+          <div className={`big ${psiCls(psi?.status)}`}>{psi?.value != null ? psi.value.toFixed(3) : '—'}</div>
+          <small className="t-muted">{psi?.status || '—'} →</small>
+        </div>
       </div>
 
-      <Card>
-        <h3>
-          Recent decisions{' '}
+      <div className="th">
+        <h3>Needs attention</h3>
+        <span className="lbl">{attention.length} items</span>
+      </div>
+      <div className="attn">
+        {attention.map((a, i) => (
+          <div key={i} className={`ac ${a.severity || ''}`} onClick={() => navigate(attTarget(a.target))}>
+            <small>{attLabel(a)}</small>
+            {a.message}
+          </div>
+        ))}
+        {!attention.length && <div className="empty">Nothing needs attention.</div>}
+      </div>
+
+      <div className="tile w">
+        <div className="th">
+          <h3>Recent decisions</h3>
           <button className="link" onClick={() => navigate('/app/decisions')}>
-            View all →
+            All decisions →
           </button>
-        </h3>
+        </div>
         <DecisionTable rows={data.recent ?? []} />
-      </Card>
+      </div>
     </>
   )
 }

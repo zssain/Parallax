@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { PageHeader, Card, OutcomePill, StatusChip } from '../ui/components'
+import { PageHeader, Kpi, OutcomePill } from '../ui/components'
 import {
   useVersions,
   useLiveVersion,
@@ -213,194 +213,200 @@ export function Lab() {
   return (
     <>
       <PageHeader
-        eyebrow="Strategy Lab"
-        title="Test rules on history before they ship"
-        description="Draft a candidate version, replay every historical decision through it, read an honest impact report, then promote through maker-checker approval."
-        right={
-          <button className="btn p" onClick={onNewCandidate}>
-            + New candidate from {liveVersion}
-          </button>
+        title={
+          <>
+            Strategy <em>Lab</em>
+          </>
         }
+        description="Draft a candidate, replay every historical decision through it, read an honest impact report, then promote through maker-checker approval."
       />
 
-      <div className="vcards">
-        {items.map((x) => (
-          <div key={x.version} className={`vcard ${x.version === selected ? 'on' : ''}`} onClick={() => setSelected(x.version || null)}>
-            <StatusChip status={x.status} />
-            {x.shadow && <span className="pill"> shadow</span>}
-            <h4>{x.version}</h4>
-            <p>
-              {x.note}
-              <br />
-              by {x.createdBy}
-              {x.approvedBy && ` · approved by ${x.approvedBy}`}
-              {x.proposedBy && x.status === 'PROPOSED' && ` · proposed by ${x.proposedBy}`}
-              <br />
-              {x.usedBy ? (
-                <>
-                  <b>Immutable</b> · used by {x.usedBy} decisions
-                </>
-              ) : (
-                fmtTs(x.createdAt).slice(0, 10)
-              )}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      {version && (
-        <Card style={{ marginBottom: 20 }}>
-          <h3>
-            {version.version}{' '}
-            <span className="row">
-              {version.status === 'DRAFT' && (
-                <>
-                  <button className="btn p" onClick={onRunReplay} disabled={isRunning || cfgErrors.length > 0}>
-                    Run replay on {knownTotal ? `${fmt(knownTotal)} decisions` : 'history'}
-                  </button>
-                  <button className="btn bad" onClick={() => can('STRATEGIST') ? discard.mutate(version.version!) : denyToast('STRATEGIST')}>
-                    Discard
-                  </button>
-                </>
-              )}
-              {version.status === 'REPLAYED' && (
-                <>
-                  <button className="btn" onClick={onToggleShadow}>
-                    {version.shadow ? 'Stop shadow mode' : 'Run in shadow mode'}
-                  </button>
-                  <button className="btn" onClick={() => can('STRATEGIST') ? backToDraft.mutate(version.version!) : denyToast('STRATEGIST')}>
-                    Edit (back to draft)
-                  </button>
-                  <button className="btn p" onClick={onPropose}>
-                    Propose for approval
-                  </button>
-                </>
-              )}
-              {version.status === 'PROPOSED' && (
-                <>
-                  <button className="btn bad" onClick={onReject}>
-                    Reject
-                  </button>
-                  <button className="btn p" onClick={onApprove}>
-                    Approve &amp; promote to LIVE
-                  </button>
-                </>
-              )}
-              {version.status === 'LIVE' && rollbackTarget && (
-                <button className="btn bad" onClick={onRollback}>
-                  Roll back to {rollbackTarget}
-                </button>
-              )}
-            </span>
-          </h3>
-
-          {si >= 0 ? (
-            <div className="wf">
-              {steps.map((s, i) => (
-                <div key={s} className={i < si ? 'done' : i === si ? 'cur' : ''}>
-                  {i < si ? '✓ ' : ''}
-                  {s[0] + s.slice(1).toLowerCase()}
+      <div className="lab">
+        <div className="vlog">
+          <button className="btn p" style={{ width: '100%', justifyContent: 'center', marginBottom: 12 }} onClick={onNewCandidate}>
+            + New candidate from {liveVersion}
+          </button>
+          {items
+            .slice()
+            .reverse()
+            .map((x) => (
+              <div
+                key={x.version}
+                className={`vi ${x.status || ''} ${x.version === selected ? 'on' : ''}`}
+                onClick={() => setSelected(x.version || null)}
+              >
+                <span className="vd" />
+                <div>
+                  <b>
+                    {x.version} <span className={`st ${x.status || ''}`}>{x.status}</span>
+                  </b>
+                  <small>{x.note}</small>
+                  <small>
+                    {x.usedBy ? `${x.usedBy} decisions · immutable` : fmtTs(x.createdAt).slice(0, 10)}
+                    {x.shadow ? ' · shadow' : ''}
+                  </small>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="note" style={{ marginBottom: 14 }}>
-              Retired version — kept forever so its decisions stay reproducible.
-            </p>
-          )}
+              </div>
+            ))}
+        </div>
 
-          <div className="g g21" style={{ margin: 0 }}>
-            <div>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Parameter</th>
-                    <th>Live {liveVersion}</th>
-                    <th>{version.version}</th>
-                    <th>Unit</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {FIELDS.map((f) => {
-                    const a = liveCfg ? f.get(liveCfg) : 0
-                    const b = localCfg ? f.get(localCfg) : 0
-                    return (
-                      <tr key={f.key} className={a !== b ? 'diff' : ''}>
-                        <td>{f.label}</td>
-                        <td className="mono">{a}</td>
-                        <td>
-                          {editable ? (
-                            <input
-                              type="number"
-                              step="any"
-                              defaultValue={b}
-                              style={{ width: 110, padding: '7px 9px', border: '1px solid var(--line)', borderRadius: 7, background: 'var(--panel2)', color: 'var(--ink)' }}
-                              onChange={(e) => onEditField(f, Number(e.target.value))}
-                            />
-                          ) : (
-                            <span className="mono">{b}</span>
-                          )}
-                        </td>
-                        <td className="t-muted">{f.unit}</td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-              {editable && (
-                <p className="note">Changed rows are highlighted. Edits are validated on change; a version becomes immutable once any decision uses it.</p>
-              )}
-            </div>
-            <div>
-              <div className="lbl">Config validation</div>
-              <div className="vlist">
-                {cfgErrors.length ? (
-                  cfgErrors.map((e, i) => (
-                    <div className="t-bad" key={i}>
-                      ✗ {e}
-                    </div>
-                  ))
+        <div>
+          {version && (
+            <>
+              <div className="tile w" style={{ marginBottom: 14, padding: '28px 30px' }}>
+                <div className="row" style={{ marginBottom: 14 }}>
+                  <h2 style={{ fontFamily: 'var(--serif)', fontWeight: 400, fontSize: 44, letterSpacing: '-.03em' }}>{version.version}</h2>
+                  <span className={`st ${version.status || ''}`}>{version.status}</span>
+                  <span className="sp" />
+                  {version.status === 'DRAFT' && (
+                    <>
+                      <button className="btn bad" onClick={() => (can('STRATEGIST') ? discard.mutate(version.version!) : denyToast('STRATEGIST'))}>
+                        Discard
+                      </button>
+                      <button className="btn p" onClick={onRunReplay} disabled={isRunning || cfgErrors.length > 0}>
+                        Replay {knownTotal ? `${fmt(knownTotal)} decisions` : 'history'} →
+                      </button>
+                    </>
+                  )}
+                  {version.status === 'REPLAYED' && (
+                    <>
+                      <button className="btn" onClick={onToggleShadow}>
+                        {version.shadow ? 'Stop shadow mode' : 'Run in shadow mode'}
+                      </button>
+                      <button className="btn" onClick={() => (can('STRATEGIST') ? backToDraft.mutate(version.version!) : denyToast('STRATEGIST'))}>
+                        Back to draft
+                      </button>
+                      <button className="btn p" onClick={onPropose}>
+                        Propose for approval →
+                      </button>
+                    </>
+                  )}
+                  {version.status === 'PROPOSED' && (
+                    <>
+                      <button className="btn bad" onClick={onReject}>
+                        Reject
+                      </button>
+                      <button className="btn gold" onClick={onApprove}>
+                        Approve &amp; promote to LIVE
+                      </button>
+                    </>
+                  )}
+                  {version.status === 'LIVE' && rollbackTarget && (
+                    <button className="btn bad" onClick={onRollback}>
+                      Roll back to {rollbackTarget}
+                    </button>
+                  )}
+                </div>
+
+                {si >= 0 ? (
+                  <div className="wf">
+                    {steps.map((s, i) => (
+                      <span key={s} style={{ display: 'contents' }}>
+                        {i > 0 && <span>——</span>}
+                        <div className={i < si ? 'done' : i === si ? 'cur' : ''}>
+                          {i < si ? '✓ ' : ''}
+                          {s[0] + s.slice(1).toLowerCase()}
+                        </div>
+                      </span>
+                    ))}
+                  </div>
                 ) : (
-                  <div className="t-ok">✓ Bands contiguous, cutoffs ordered, ranges valid</div>
+                  <p className="note" style={{ margin: '0 0 16px' }}>
+                    Retired — kept forever so its decisions stay reproducible.
+                  </p>
                 )}
-              </div>
-              <div className="lbl" style={{ marginTop: 20 }}>
-                Governance
-              </div>
-              <div className="vlist t-muted">
-                <div>Proposer: {version.proposedBy || '—'}</div>
-                <div>Approver: {version.approvedBy || '—'}</div>
-                <div style={{ marginTop: 6 }}>
-                  Maker-checker: the proposer cannot approve their own change. Strategists propose; approvers promote.
+
+                <div className="g g21" style={{ margin: 0 }}>
+                  <div>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Parameter</th>
+                          <th>Live {liveVersion}</th>
+                          <th>{version.version}</th>
+                          <th>Unit</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {FIELDS.map((f) => {
+                          const a = liveCfg ? f.get(liveCfg) : 0
+                          const b = localCfg ? f.get(localCfg) : 0
+                          return (
+                            <tr key={f.key} className={a !== b ? 'diff' : ''}>
+                              <td>{f.label}</td>
+                              <td className="mono">{a}</td>
+                              <td>
+                                {editable ? (
+                                  <input
+                                    type="number"
+                                    step="any"
+                                    defaultValue={b}
+                                    style={{ width: 110, padding: '7px 10px', border: '1px solid var(--line)', borderRadius: 999, background: 'var(--bg)', color: 'var(--ink)' }}
+                                    onChange={(e) => onEditField(f, Number(e.target.value))}
+                                  />
+                                ) : (
+                                  <span className="mono">{b}</span>
+                                )}
+                              </td>
+                              <td className="t-muted">{f.unit}</td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                    {editable && <p className="note">Changed rows are highlighted. A version becomes immutable once any decision uses it.</p>}
+                  </div>
+                  <div className="tile" style={{ padding: '18px 20px' }}>
+                    <div className="lbl">Validation</div>
+                    <div className="vlist">
+                      {cfgErrors.length ? (
+                        cfgErrors.map((e, i) => (
+                          <div className="t-bad" key={i}>
+                            ✕ {e}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="t-ok">✓ Bands contiguous, cutoffs ordered, ranges valid</div>
+                      )}
+                    </div>
+                    <div className="lbl" style={{ marginTop: 20 }}>
+                      Governance
+                    </div>
+                    <div className="vlist t-muted">
+                      <div>Proposer · {version.proposedBy || '—'}</div>
+                      <div>Approver · {version.approvedBy || '—'}</div>
+                      <div style={{ marginTop: 6 }}>The proposer can never approve their own change.</div>
+                    </div>
+                    {isRunning && (
+                      <>
+                        <div className="lbl" style={{ marginTop: 20 }}>
+                          Replaying…
+                        </div>
+                        <div className="progress">
+                          <div style={{ width: `${job?.total ? ((job.progress || 0) / job.total) * 100 : 0}%` }} />
+                        </div>
+                        <div className="note">
+                          {fmt(job?.progress || 0)} / {fmt(job?.total || 0)} decisions
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
-              {isRunning && (
-                <>
-                  <div className="lbl" style={{ marginTop: 20 }}>
-                    Replaying…
-                  </div>
-                  <div className="progress">
-                    <div style={{ width: `${job?.total ? ((job.progress || 0) / job.total) * 100 : 0}%` }} />
-                  </div>
-                  <div className="note">
-                    {fmt(job?.progress || 0)} / {fmt(job?.total || 0)} decisions
-                  </div>
-                </>
+
+              {job?.status === 'DONE' && job.report ? (
+                <ReplayReportView job={job} sim={sim} setSim={setSim} openModal={openModal} closeModal={closeModal} />
+              ) : version.status !== 'DRAFT' ? null : (
+                <div className="tile">
+                  <div className="empty">Run a replay to see approval shifts, flipped applicants, exposure-weighted loss and segment impact.</div>
+                </div>
               )}
-            </div>
-          </div>
-        </Card>
-      )}
 
-      {job?.status === 'DONE' && job.report ? (
-        <ReplayReportView job={job} sim={sim} setSim={setSim} openModal={openModal} closeModal={closeModal} />
-      ) : version?.status === 'DRAFT' ? (
-        <Card>
-          <div className="empty">Run a replay to see approval shifts, flipped applicants, exposure-weighted loss and segment impact.</div>
-        </Card>
-      ) : null}
-
-      {version?.shadow && <ShadowCard version={version.version!} />}
+              {version.shadow && <ShadowCard version={version.version!} />}
+            </>
+          )}
+        </div>
+      </div>
     </>
   )
 }
@@ -438,59 +444,50 @@ function ReplayReportView({
 
   return (
     <>
-      <Card style={{ marginBottom: 20 }}>
-        <h3>
-          Replay report · {job.jobId}{' '}
-          <span className="t-muted" style={{ fontSize: 13, fontWeight: 500 }}>
-            {R.candidate.version} vs live {R.baseline.version} · {fmt(R.n)} historical decisions · load {job.loadMs} ms · evaluate{' '}
-            {job.evaluateMs} ms · total {job.totalMs} ms
-          </span>
-        </h3>
-        <div className="kpis k4" style={{ marginBottom: 18, boxShadow: 'none' }}>
-          <div className="kpi">
-            <div className="lbl">Approval rate</div>
-            <div className={`v ${dA < 0 ? 't-warn' : 't-ok'}`}>
-              {pct(R.baseline.approvalRate, 1)} → {pct(R.candidate.approvalRate, 1)}
-            </div>
-            <small>
-              {dA >= 0 ? '+' : ''}
-              {(dA * 100).toFixed(1)} pts
-            </small>
-          </div>
-          <div className="kpi">
-            <div className="lbl">Decisions flipped</div>
-            <div className="v">{fmt(flipCount)}</div>
-            <small>{pct(flipCount / R.n, 1)} of history</small>
-          </div>
-          <div className="kpi">
-            <div className="lbl">{sim ? 'Expected loss (incl. simulation)' : 'Expected loss (observed)'}</div>
-            <div className={`v ${dEL <= 0 ? 't-ok' : 't-bad'}`}>
-              {money(R.baseline.expectedLossObserved)} → {money(elC)}
-            </div>
-            <small>
-              {dEL >= 0 ? '+' : ''}
-              {(dEL * 100).toFixed(1)}% · limit changes: {fmt(R.limitChanges)}
-            </small>
-          </div>
-          <div className="kpi">
-            <div className="lbl">Outcome unknown</div>
-            <div className={`v ${R.outcomeUnknown.count ? 't-warn' : 't-ok'}`}>{fmt(R.outcomeUnknown.count)}</div>
-            <small>{R.outcomeUnknown.count ? `${money(R.outcomeUnknown.exposure)} exposure never observed` : 'Tightening only — fully observable'}</small>
-          </div>
-        </div>
-        {R.immature.count > 0 && (
-          <p className="note" style={{ marginTop: 0 }}>
-            {fmt(R.immature.count)} recent approvals have no outcome yet and are excluded.
-          </p>
-        )}
+      <div className="th" style={{ marginTop: 8 }}>
+        <h3>Replay report · {job.jobId}</h3>
+        <span className="lbl">
+          {R.candidate.version} vs live {R.baseline.version} · {fmt(R.n)} decisions · load {job.loadMs} ms · evaluate {job.evaluateMs} ms · total{' '}
+          {job.totalMs} ms
+        </span>
+      </div>
+      <div className="g" style={{ gridTemplateColumns: 'repeat(4,1fr)' }}>
+        <Kpi
+          label="Approval rate"
+          value={`${pct(R.baseline.approvalRate, 1)} → ${pct(R.candidate.approvalRate, 1)}`}
+          sub={`${dA >= 0 ? '+' : ''}${(dA * 100).toFixed(1)} pts`}
+          cls={dA < 0 ? 't-warn' : 't-ok'}
+        />
+        <Kpi label="Decisions flipped" value={fmt(flipCount)} sub={`${pct(flipCount / R.n, 1)} of history`} />
+        <Kpi
+          label={sim ? 'Loss · incl. simulation' : 'Loss · observed'}
+          value={`${dEL >= 0 ? '+' : ''}${(dEL * 100).toFixed(1)}%`}
+          sub={`${money(R.baseline.expectedLossObserved)} → ${money(elC)} · limit changes: ${fmt(R.limitChanges)}`}
+          cls={dEL <= 0 ? 't-ok' : 't-bad'}
+        />
+        <Kpi
+          label="Outcome unknown"
+          value={fmt(R.outcomeUnknown.count)}
+          sub={R.outcomeUnknown.count ? `${money(R.outcomeUnknown.exposure)} never observed` : 'Tightening only · all observed'}
+          cls={R.outcomeUnknown.count ? 't-warn' : 't-ok'}
+        />
+      </div>
+
+      {R.immature.count > 0 && (
+        <p className="note" style={{ marginTop: 0 }}>
+          {fmt(R.immature.count)} recent approvals have no outcome yet and are excluded.
+        </p>
+      )}
+
+      <div className="tile w" style={{ marginBottom: 14 }}>
         <div className="row" style={{ marginBottom: 18 }}>
           <span className={`toggle ${sim ? 'on' : ''}`} onClick={() => setSim(!sim)}>
             <i />
             Include <b>simulated</b> outcomes for applicants never observed
           </span>
           {sim && (
-            <span className="pill" style={{ background: 'var(--warnbg)', color: 'var(--warn)' }}>
-              SIMULATION — counterfactual outcomes from the generator, not observed data
+            <span className="pill2" style={{ color: 'var(--ochre)' }}>
+              SIMULATION · counterfactual, not observed
             </span>
           )}
         </div>
@@ -514,7 +511,7 @@ function ReplayReportView({
                   <tr key={o}>
                     <th>{o.slice(0, 4)}</th>
                     {OUT.map((_, j) => (
-                      <td key={j} className={i !== j && R.matrix[i][j] ? 'hl' : ''}>
+                      <td key={j} className={`mono ${i !== j && R.matrix[i][j] ? 'hl' : ''}`}>
                         {fmt(R.matrix[i][j])}
                       </td>
                     ))}
@@ -523,9 +520,8 @@ function ReplayReportView({
               </tbody>
             </table>
             <p className="note">
-              Expected loss = PD × EAD × LGD. EAD = limit × CCF {R.assumptions.ccf}; LGD {R.assumptions.lgd} (stated
-              assumptions). PD from {R.assumptions.pdSource}. Applicants a candidate newly approves were never observed
-              (reject inference) and are excluded unless simulation is on.
+              Expected loss = PD × EAD × LGD; EAD = limit × CCF {R.assumptions.ccf}; LGD {R.assumptions.lgd}. Newly approved applicants were never
+              observed (reject inference) and are excluded unless simulation is on.
             </p>
           </div>
           <div>
@@ -537,9 +533,9 @@ function ReplayReportView({
                 <tr>
                   <th>Band</th>
                   <th>Apps</th>
-                  <th>Approval live → cand</th>
-                  <th>Δ</th>
-                  <th>Loss live → cand</th>
+                  <th>Approval</th>
+                  <th>Δ pts</th>
+                  <th>Loss</th>
                 </tr>
               </thead>
               <tbody>
@@ -548,14 +544,14 @@ function ReplayReportView({
                   return (
                     <tr key={s.band}>
                       <td>{s.band}</td>
-                      <td>{fmt(s.n)}</td>
-                      <td>
+                      <td className="mono">{fmt(s.n)}</td>
+                      <td className="mono">
                         {s.n ? pct(s.baselineApprovals / s.n, 1) : '—'} → {s.n ? pct(s.candidateApprovals / s.n, 1) : '—'}
                       </td>
                       <td>
                         <div className="segbar">
-                          <span style={{ width: Math.min(80, Math.abs(d) * 400), background: d < 0 ? 'var(--warn)' : d > 0 ? 'var(--ok)' : 'var(--line)' }} />
-                          <b className={d < 0 ? 't-warn' : d > 0 ? 't-ok' : 't-muted'}>
+                          <span style={{ width: Math.min(80, Math.abs(d) * 400), background: d < 0 ? 'var(--ochre)' : d > 0 ? 'var(--moss)' : 'var(--line)' }} />
+                          <b className={`mono ${d < 0 ? 't-warn' : d > 0 ? 't-ok' : 't-muted'}`}>
                             {d >= 0 ? '+' : ''}
                             {(d * 100).toFixed(1)}
                           </b>
@@ -571,18 +567,19 @@ function ReplayReportView({
             </table>
           </div>
         </div>
-      </Card>
+      </div>
 
-      <Card style={{ marginBottom: 20 }}>
-        <h3>
-          Flipped applicants <span className="lbl">first {Math.min(20, flips.length)} · click to compare</span>
-        </h3>
+      <div className="tile w" style={{ marginBottom: 14 }}>
+        <div className="th">
+          <h3>Flipped applicants</h3>
+          <span className="lbl">first {Math.min(20, flips.length)} · click to compare</span>
+        </div>
         <table>
           <thead>
             <tr>
               <th>Record</th>
-              <th>Score live → cand</th>
-              <th>Outcome live → cand</th>
+              <th>Score</th>
+              <th>Live → candidate</th>
               <th>Candidate reasons</th>
               <th>Observed?</th>
             </tr>
@@ -591,7 +588,7 @@ function ReplayReportView({
             {flips.map((f) => (
               <tr key={f.seq} className="cl" onClick={() => openCompare(f.seq!, f.applicationId)}>
                 <td className="mono">{f.applicationId}</td>
-                <td>
+                <td className="mono">
                   {f.baseline?.score} → {f.candidate?.score}
                 </td>
                 <td>
@@ -599,7 +596,7 @@ function ReplayReportView({
                 </td>
                 <td>
                   {(f.candidateReasons || []).slice(0, 3).map((r) => (
-                    <span key={r} className="pill">
+                    <span key={r} className="pill2">
                       {r}
                     </span>
                   )) || '—'}
@@ -609,7 +606,7 @@ function ReplayReportView({
             ))}
           </tbody>
         </table>
-      </Card>
+      </div>
     </>
   )
 }
@@ -618,16 +615,17 @@ function FlipCompare({ d, appId, onClose }: { d: FlipDetail; appId?: string; onC
   const col = (title: string, side: FlipDetail['baseline']) => {
     const dec = side?.decision
     return (
-      <div className="card">
+      <div className="tile">
         <div className="lbl">{title}</div>
-        <div style={{ margin: '8px 0 12px' }}>
-          <OutcomePill outcome={dec?.outcome} /> <b style={{ fontSize: 22, marginLeft: 8 }}>{dec?.score}</b>{' '}
+        <div className="row" style={{ margin: '10px 0 12px' }}>
+          <OutcomePill outcome={dec?.outcome} />{' '}
+          <b style={{ fontFamily: 'var(--serif)', fontWeight: 400, fontSize: 28 }}>{dec?.score}</b>{' '}
           {dec?.creditLimit ? '· ' + money(dec.creditLimit) : ''}
         </div>
         {(dec?.scoreParts || []).map((p) => (
           <div className="chkrow" key={p.code}>
             <span>{p.attribute}</span>
-            <b>
+            <b className="mono">
               {p.points}/{p.maxPoints}
             </b>
           </div>
@@ -644,17 +642,15 @@ function FlipCompare({ d, appId, onClose }: { d: FlipDetail; appId?: string; onC
           )}
         </div>
         <p className="note">
-          Cutoffs: approve ≥ {side?.approveCutoff}, refer ≥ {side?.referCutoff}
+          Approve ≥ {side?.approveCutoff}, refer ≥ {side?.referCutoff}
         </p>
       </div>
     )
   }
   return (
     <>
-      <h3>
-        {appId || d.applicationId} · live vs candidate
-      </h3>
-      <p className="t-muted" style={{ marginBottom: 16 }}>
+      <h3>{appId || d.applicationId}</h3>
+      <p className="t-muted" style={{ margin: '4px 0 16px' }}>
         Same stored input, two rule versions. {d.observed ? 'Outcome observed.' : 'Never approved historically — outcome unknown.'}
       </p>
       <div className="g g2">
@@ -676,13 +672,13 @@ function ShadowCard({ version }: { version: string }) {
   const { data } = useShadowResults(version, true)
   const items = data?.items || []
   return (
-    <Card>
-      <h3>
-        Shadow mode · {version}{' '}
+    <div className="tile w">
+      <div className="th">
+        <h3>Shadow mode · {version}</h3>
         <span className="lbl">
-          {data?.count ?? 0} live applications scored silently · {data?.disagreements ?? 0} disagreements
+          {data?.count ?? 0} scored · {data?.disagreements ?? 0} disagreements
         </span>
-      </h3>
+      </div>
       {items.length ? (
         <table>
           <thead>
@@ -709,9 +705,9 @@ function ShadowCard({ version }: { version: string }) {
           </tbody>
         </table>
       ) : (
-        <div className="empty">Waiting for live traffic. Submit an application under New application.</div>
+        <div className="empty">Waiting for live traffic. Submit an application from Apply.</div>
       )}
-      <p className="note">Shadow results are logged beside the ledger record and never returned to the applicant.</p>
-    </Card>
+      <p className="note">Shadow results sit beside the ledger record and are never returned to the applicant.</p>
+    </div>
   )
 }

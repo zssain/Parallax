@@ -1,320 +1,365 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArchArt } from '../ui/ArchArt'
-
-const SLIDES = [
-  {
-    eb: 'Credit decisioning for a moving portfolio',
-    a: 'Change a rule.',
-    b: 'See every decision it would have made.',
-    lead: 'Replay your full decision history before a strategy ships.',
-    body: 'Parallax decides credit card applications, records each decision with its exact inputs, and lets strategists test rule changes against real history — with honest loss estimates.',
-  },
-  {
-    eb: 'A ledger you can prove',
-    a: 'Every decision.',
-    b: 'Reproducible, forever.',
-    lead: 'Six months later, get the same answer — byte for byte.',
-    body: 'An append-only, hash-chained ledger stores the full normalized input and rule version of every decision, so regulators and auditors get evidence, not a story.',
-  },
-  {
-    eb: 'Champion and challenger',
-    a: 'Two views.',
-    b: 'One decision.',
-    lead: "Run tomorrow's rules silently beside today's.",
-    body: 'Shadow mode scores live applications under a candidate version without touching customers. Maker-checker approval and one-click rollback keep every change governed.',
-  },
-]
-
-interface Q {
-  q: string
-  d: string
-  o: [string, number][]
-  f: string
-}
-const QZ: Q[] = [
-  {
-    q: 'Can you reproduce a decision from six months ago — exactly?',
-    d: 'Regulators and customers ask why. Rebuilding an answer from logs is not the same as re-running the same inputs under the same rules.',
-    o: [
-      ['Yes, byte for byte', 2],
-      ['Roughly, from logs', 1],
-      ['Not really', 0],
-    ],
-    f: 'Decision ledger + reproduce endpoint',
-  },
-  {
-    q: 'Before a rule change ships, do you know which past applicants it would flip?',
-    d: 'Move a cutoff by twenty points and one score band can change sharply while another barely moves.',
-    o: [
-      ['Yes, replayed on history', 2],
-      ['We estimate in a spreadsheet', 1],
-      ['We find out after launch', 0],
-    ],
-    f: 'Strategy Lab replay',
-  },
-  {
-    q: 'Does your loss estimate separate what you observed from what you are guessing?',
-    d: 'You only see outcomes for applicants you approved. Loosening a rule approves people nobody has ever observed.',
-    o: [
-      ['Yes, explicitly', 2],
-      ['Sometimes', 1],
-      ['We treat them the same', 0],
-    ],
-    f: 'Reject-inference labelling',
-  },
-  {
-    q: 'Can the person who proposes a rule change also approve it?',
-    d: 'Good governance needs two sets of eyes — and a rollback that takes minutes, not a release cycle.',
-    o: [
-      ['No, maker-checker enforced', 2],
-      ['By convention only', 1],
-      ['Yes', 0],
-    ],
-    f: 'Maker-checker promotion + rollback',
-  },
-  {
-    q: 'What happens to applications when your credit bureau goes down?',
-    d: 'A dependency outage should degrade into a review queue, not an error page or a lost applicant.',
-    o: [
-      ['They queue and re-decide', 2],
-      ['A manual workaround', 1],
-      ['They fail', 0],
-    ],
-    f: 'Circuit breaker + automatic re-decision',
-  },
-]
+import { Wordmark } from '../ui/brand'
+import { clamp, fmt, pct } from '../ui/format'
+import { HB, HERO_LEN, heroCalc, ART_LEDGER, QZ, type Quiz } from './marketingEngine'
 
 function scrollToId(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
 }
 
+const TICK_WORDS = [
+  'DECIDE',
+  'RECORD',
+  'REPLAY',
+  'MAKER-CHECKER',
+  'ADVERSE ACTION',
+  'HASH-CHAINED LEDGER',
+  'SHADOW MODE',
+  'DRIFT · PSI',
+  'READ-ONLY AI',
+]
+const xPct = (c: number) => ((c - 450) / 400) * 100
+
 export function Marketing() {
   const navigate = useNavigate()
-  const [slide, setSlide] = useState(0)
-  const heroArtRef = useRef<HTMLDivElement>(null)
+  const [hc, setHc] = useState(700)
+  const stageRef = useRef<HTMLElement>(null)
+  const histRef = useRef<SVGSVGElement>(null)
+  const copyRef = useRef<HTMLDivElement>(null)
+  const dragRef = useRef(false)
 
-  // Auto-advance every 7s (and whenever the slide changes manually, restart the timer).
+  function setCutFromX(clientX: number) {
+    const r = stageRef.current?.getBoundingClientRect()
+    if (!r) return
+    setHc(clamp(Math.round((450 + ((clientX - r.left) / r.width) * 400) / 5) * 5, 620, 760))
+  }
+
+  // Dragging the handle tracks pointer moves at the window level (matches the prototype).
   useEffect(() => {
-    const t = setTimeout(() => setSlide((s) => (s + 1) % SLIDES.length), 7000)
-    return () => clearTimeout(t)
-  }, [slide])
+    const move = (e: PointerEvent) => {
+      if (dragRef.current) setCutFromX(e.clientX)
+    }
+    const up = () => (dragRef.current = false)
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+    return () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+    }
+  }, [])
 
-  const s = SLIDES[slide]
-
-  function onHeroMove(e: React.MouseEvent<HTMLElement>) {
+  function onStageMove(e: React.MouseEvent<HTMLElement>) {
+    if (dragRef.current) return
     const r = e.currentTarget.getBoundingClientRect()
     const dx = (e.clientX - r.left) / r.width - 0.5
     const dy = (e.clientY - r.top) / r.height - 0.5
-    heroArtRef.current?.querySelectorAll<SVGGElement>('.plx').forEach((g) => {
-      const d = Number(g.dataset.d || 0)
-      g.style.transform = `translate(${dx * d}px,${dy * d * 0.5}px)`
-    })
+    if (histRef.current) histRef.current.style.transform = `translateY(${dy * -8}px)`
+    if (copyRef.current) copyRef.current.style.transform = `translate(${dx * -10}px,${dy * -6}px)`
   }
+
+  const L = 680
+  const a = Math.min(L, hc)
+  const b = Math.max(L, hc)
+  const mx = Math.max(...HB)
+  const r = heroCalc(hc)
+  const d = (r.ca - r.la) * 100
+  const art = heroCalc(700)
 
   return (
     <div id="site">
-      <header className="mnav">
-        <img className="wordmark-img" src="/brand/parallax-wordmark-navy.svg" alt="Parallax" />
-        <nav>
-          <a onClick={() => scrollToId('how')}>Platform</a>
-          <a onClick={() => scrollToId('lab')}>Strategy Lab</a>
-          <a onClick={() => scrollToId('gov')}>Governance</a>
-          <button className="pill-teal" onClick={() => navigate('/login')}>
-            Request a demo&nbsp;&nbsp;↗
+      <section className="stage" id="stage" ref={stageRef} style={{ ['--x' as string]: xPct(hc) + '%' }} onMouseMove={onStageMove}>
+        <div className="pane" />
+        <header className="mh">
+          <Wordmark className="blend" markSize={22} onClick={() => scrollToId('stage')} />
+          <nav className="blend">
+            <a onClick={() => scrollToId('how')}>Platform</a>
+            <a onClick={() => scrollToId('audit')}>Audit</a>
+            <a onClick={() => scrollToId('rules')}>Fine print</a>
+            <a onClick={() => scrollToId('gov')}>Governance</a>
+          </nav>
+          <a className="blend" style={{ fontSize: 14.5 }} onClick={() => navigate('/login')}>
+            Sign in
+          </a>
+          <button className="pill gold" style={{ padding: '11px 18px', fontSize: 14 }} onClick={() => navigate('/login')}>
+            Open workspace →
           </button>
-          <a onClick={() => navigate('/login')}>Open workspace&nbsp;&nbsp;↗</a>
-        </nav>
-      </header>
-
-      <section className="hero" id="hero" onMouseMove={onHeroMove}>
-        <div className="hero-l" id="slide">
-          <div className="fade-slide" key={slide}>
-            <div className="eyeb">{s.eb}</div>
-            <h1>
-              {s.a}
-              <em>{s.b}</em>
-            </h1>
-            <div className="lead">{s.lead}</div>
-            <p className="body">{s.body}</p>
-            <div className="cta-row">
-              <button className="btn-gold" onClick={() => navigate('/login')}>
-                Open the workspace <span>↗</span>
-              </button>
-              <button className="btn-line" onClick={() => scrollToId('how')}>
-                See how it works <span>↗</span>
-              </button>
-            </div>
-          </div>
-        </div>
-        <div className="hero-r" id="heroArt" ref={heroArtRef}>
-          <ArchArt uid="hero" />
-        </div>
-        <div className="sl-ctrl">
-          <button className="circ" onClick={() => setSlide((slide - 1 + SLIDES.length) % SLIDES.length)}>
-            ←
-          </button>
-          <button className="circ" onClick={() => setSlide((slide + 1) % SLIDES.length)}>
-            →
-          </button>
-          <div className="sl-prog" id="slProg">
-            {SLIDES.map((_, i) => (
-              <div key={i} className={i === slide ? 'on' : ''} onClick={() => setSlide(i)}>
-                0{i + 1}
-                <i />
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="hint-down" onClick={() => scrollToId('check')}>
-          ↓&nbsp;&nbsp;&nbsp;Take the five-question check
-        </div>
-      </section>
-
-      <QuizSection onOpen={() => navigate('/login')} />
-
-      <section className="land">
-        <div>
-          <div className="eyeb">The rules of the road</div>
-          <h2>Every decision has a deadline.</h2>
+        </header>
+        <div className="st-copy" id="stCopy" ref={copyRef}>
+          <div className="kick">Credit decisioning · replay-first</div>
+          <h1>
+            Move the line.
+            <br />
+            <em>See who moves with it.</em>
+          </h1>
           <p>
-            Consumer credit decisions sit inside some of the most specific rules in finance. Parallax builds them into
-            the engine instead of a checklist. Each figure links to the regulation behind it.
+            Parallax decides credit card applications, records every decision with its exact inputs, and replays your
+            full history through a rule change before a single customer sees it.
+          </p>
+          <div className="st-cta">
+            <button className="pill" onClick={() => navigate('/login')}>
+              Open the workspace →
+            </button>
+            <button className="tlink" onClick={() => scrollToId('how')}>
+              How it works ↓
+            </button>
+          </div>
+        </div>
+        <div className="st-read" id="stRead">
+          <div className="kick">Replaying {fmt(HERO_LEN)} applicants</div>
+          <div className="rrow">
+            <span>Approval rate</span>
+            <b>
+              {pct(r.la, 1)} → {pct(r.ca, 1)}
+            </b>
+            <em className={d < 0 ? 'dn' : d > 0 ? 'up' : ''}>
+              {d >= 0 ? '+' : ''}
+              {d.toFixed(1)} pts vs live
+            </em>
+          </div>
+          <div className="rrow">
+            <span>Decisions flipped</span>
+            <b>{fmt(r.fl)}</b>
+            <em>{pct(r.fl / HERO_LEN, 1)} of history</em>
+          </div>
+          <div className="rrow">
+            <span>Outcome unknown</span>
+            <b>{fmt(r.unk)}</b>
+            <em>{r.unk ? 'never observed — not counted as safe' : 'tightening only · all observed'}</em>
+          </div>
+          <p>
+            <i />
+            Rust bars flip outcome. Drag the gold line, or click the chart.
           </p>
         </div>
-        <div className="lgrid">
-          <a className="lcell" href="https://www.consumerfinance.gov/rules-policy/regulations/1002/9/" target="_blank" rel="noopener">
-            <span className="ar">↗</span>
-            <div className="lbig">30 days</div>
-            <p>to notify an applicant of adverse action after a completed application</p>
-            <small>ECOA · Regulation B §1002.9</small>
-          </a>
-          <a className="lcell" href="https://www.consumerfinance.gov/rules-policy/regulations/1002/9/" target="_blank" rel="noopener">
-            <span className="ar">↗</span>
-            <div className="lbig">4 reasons</div>
-            <p>is where Reg B guidance says listing more stops helping the applicant</p>
-            <small>Regulation B official commentary</small>
-          </a>
-          <a className="lcell" href="https://www.consumerfinance.gov/rules-policy/regulations/1026/51/" target="_blank" rel="noopener">
-            <span className="ar">↗</span>
-            <div className="lbig">Under 21</div>
-            <p>applicants need an independent ability to pay, or a co-signer</p>
-            <small>CARD Act 2009 · Regulation Z §1026.51</small>
-          </a>
-          <a className="lcell" href="https://www.ftc.gov/legal-library/browse/statutes/fair-credit-reporting-act" target="_blank" rel="noopener">
-            <span className="ar">↗</span>
-            <div className="lbig">60 days</div>
-            <p>to request a free copy of the credit report used in the decision</p>
-            <small>Fair Credit Reporting Act · adverse action</small>
-          </a>
+        <svg
+          className="hist"
+          id="hist"
+          ref={histRef}
+          viewBox="0 0 1000 300"
+          preserveAspectRatio="none"
+          onClick={(e) => setCutFromX(e.clientX)}
+        >
+          {HB.map((n, i) => {
+            const s0 = 450 + i * 10
+            const h = (n / mx) * 270
+            const flip = s0 >= a && s0 < b
+            const color = flip ? '#b0492f' : s0 >= hc ? '#c9a45a' : 'rgba(27,24,20,.16)'
+            return <rect key={i} x={i * 25 + 2} y={300 - h} width={21} height={h} fill={color} />
+          })}
+        </svg>
+        <div className="livecut" id="liveCut" style={{ left: xPct(L) + '%' }}>
+          <span>LIVE · 680</span>
+        </div>
+        <div className="divider">
+          <div
+            className="handle"
+            id="handle"
+            tabIndex={0}
+            role="slider"
+            aria-label="Candidate approve cutoff"
+            aria-valuemin={620}
+            aria-valuemax={760}
+            aria-valuenow={hc}
+            onPointerDown={(e) => {
+              dragRef.current = true
+              e.preventDefault()
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                e.preventDefault()
+                setHc((v) => clamp(v + (e.key === 'ArrowLeft' ? -5 : 5), 620, 760))
+              }
+            }}
+          >
+            ⇆
+          </div>
+          <span className="dl">
+            CANDIDATE · <b id="cutv">{hc}</b>
+          </span>
         </div>
       </section>
 
-      <section className="msec" id="how">
-        <div className="eyeb">How Parallax works</div>
-        <h2>
-          Decide. Record. <em>Replay.</em>
-        </h2>
-        <p className="sub">
-          Every application runs through one deterministic engine. Every decision is written to a tamper-evident ledger
-          with its exact inputs. That record is what lets you test tomorrow's rules on yesterday's applicants.
-        </p>
-        <div className="steps3">
-          <div className="step3">
-            <b>01 — DECIDE</b>
-            <h3>A decision in milliseconds</h3>
-            <p>
-              Identity and fraud screening, legal-capacity and ability-to-pay policy, then a points-based scorecard.
-              Approve, refer or decline, with a limit and ranked reason codes.
-            </p>
+      <div className="tick">
+        <div className="tick-in" id="tick">
+          {[0, 1].map((dup) =>
+            TICK_WORDS.map((w, i) => (
+              <span key={`${dup}-${i}`} style={{ display: 'contents' }}>
+                <span>{w}</span>
+                <span className="d">◆</span>
+              </span>
+            )),
+          )}
+        </div>
+      </div>
+
+      <section className="sec" id="how">
+        <div className="sec-l">
+          <div className="kick">How it works</div>
+          <h2>
+            Decide.
+            <br />
+            Record.
+            <br />
+            <em>Replay.</em>
+          </h2>
+          <p>One deterministic engine, one tamper-evident record, and the ability to test tomorrow's rules on yesterday's applicants.</p>
+        </div>
+        <div>
+          <div className="chap">
+            <div className="cn">01</div>
+            <div>
+              <h3>Decide</h3>
+              <p>Identity and fraud screening, legal-capacity and ability-to-pay policy, then a points-based scorecard. Approve, refer or decline — with a limit and ranked reason codes.</p>
+            </div>
+            <pre className="art">
+              <span className="k">{'{'}</span> "outcome": <span className="g">"REFER"</span>,{'\n'}
+              {'  '}"score": 664,{'\n'}
+              {'  '}"reasons": [<span className="g">"R31"</span>,<span className="g">"R14"</span>] <span className="k">{'}'}</span>
+            </pre>
           </div>
-          <div className="step3">
-            <b>02 — RECORD</b>
-            <h3>Reproducible, forever</h3>
-            <p>
-              An append-only, hash-chained ledger stores the full normalized input and the rule version. Any decision
-              can be re-run and proven identical, years later.
-            </p>
+          <div className="chap">
+            <div className="cn">02</div>
+            <div>
+              <h3>Record</h3>
+              <p>An append-only, hash-chained ledger stores the full normalized input and the rule version. Any decision can be re-run and proven identical, years later.</p>
+            </div>
+            <pre className="art" id="artLedger">
+              {ART_LEDGER.map((row, i) => (
+                <span key={i}>
+                  {i > 0 && '\n'}
+                  <span className="k">#{String(row.seq).padStart(2, '0')}</span> prev{' '}
+                  <span className="k">{row.prev.slice(0, 6)}…</span>
+                  {'\n    → '}
+                  <span className="g">{row.hash.slice(0, 10)}…</span>
+                </span>
+              ))}
+            </pre>
           </div>
-          <div className="step3">
-            <b>03 — REPLAY</b>
-            <h3>See before you ship</h3>
-            <p>
-              Draft a rule change and replay your whole history through it. Approval shifts, flipped applicants,
-              exposure-weighted loss, segment by segment.
-            </p>
+          <div className="chap">
+            <div className="cn">03</div>
+            <div>
+              <h3>Replay</h3>
+              <p>Draft a rule change and replay every past decision through it: approval shifts, flipped applicants, exposure-weighted loss — segment by segment.</p>
+            </div>
+            <pre className="art" id="artReplay">
+              <span className="k">cutoff{'  '}</span> 680 → <span className="g">700</span>
+              {'\n'}
+              <span className="k">approval</span> {pct(art.la, 1)} → <span className="g">{pct(art.ca, 1)}</span>
+              {'\n'}
+              <span className="k">flipped </span> {fmt(art.fl)}
+              {'\n'}
+              <span className="k">unknown </span> {art.unk}
+            </pre>
           </div>
         </div>
       </section>
 
-      <section className="msec" id="lab">
-        <div className="labband">
+      <section className="sec wide" id="audit">
+        <div className="wide-head">
           <div>
-            <div className="eyeb">Strategy Lab</div>
+            <div className="kick">Five-line audit</div>
             <h2>
-              Two views. <em>One decision.</em>
+              How honest is your
+              <br />
+              <em>credit stack?</em>
             </h2>
-            <p className="sub">
-              Champion and challenger, side by side. Parallax separates what you observed from what you are guessing:
-              applicants a looser rule would newly approve are marked outcome unknown, never silently counted as safe.
-            </p>
-            <div className="cta-row">
-              <button className="btn-gold" onClick={() => navigate('/login')}>
-                Open the Strategy Lab <span>↗</span>
-              </button>
-            </div>
           </div>
-          <div className="labcard">
-            <div className="labrow">
-              <span>Candidate</span>
-              <b>v1.4 · cutoff 680 → 700</b>
+          <p>For strategy and risk teams. Pick the answer that's true today, not the one on the roadmap.</p>
+        </div>
+        <AuditQuiz onOpen={() => navigate('/login')} />
+      </section>
+
+      <section className="sec wide" id="rules" style={{ paddingTop: 40 }}>
+        <div className="wide-head">
+          <div>
+            <div className="kick">The fine print</div>
+            <h2>
+              Four numbers every
+              <br />
+              decision <em>must respect.</em>
+            </h2>
+          </div>
+          <p>Consumer credit sits inside some of the most specific rules in finance. Parallax builds them into the engine, not a checklist.</p>
+        </div>
+        <div className="figs">
+          <a className="fig" href="https://www.consumerfinance.gov/rules-policy/regulations/1002/9/" target="_blank" rel="noopener">
+            <b>30 days<sup>1</sup></b>
+            <p>to notify an applicant of adverse action after a completed application.</p>
+          </a>
+          <a className="fig" href="https://www.consumerfinance.gov/rules-policy/regulations/1002/9/" target="_blank" rel="noopener">
+            <b>4 reasons<sup>2</sup></b>
+            <p>is where Reg B guidance says listing more stops helping the applicant.</p>
+          </a>
+          <a className="fig" href="https://www.consumerfinance.gov/rules-policy/regulations/1026/51/" target="_blank" rel="noopener">
+            <b>Under 21<sup>3</sup></b>
+            <p>applicants need an independent ability to pay, or a co-signer.</p>
+          </a>
+          <a className="fig" href="https://www.ftc.gov/legal-library/browse/statutes/fair-credit-reporting-act" target="_blank" rel="noopener">
+            <b>60 days<sup>4</sup></b>
+            <p>to request a free copy of the credit report used in the decision.</p>
+          </a>
+        </div>
+        <ol className="fns">
+          <li>
+            ¹ <a href="https://www.consumerfinance.gov/rules-policy/regulations/1002/9/" target="_blank" rel="noopener">ECOA · Regulation B §1002.9 ↗</a>
+          </li>
+          <li>
+            ² <a href="https://www.consumerfinance.gov/rules-policy/regulations/1002/9/" target="_blank" rel="noopener">Regulation B · official commentary ↗</a>
+          </li>
+          <li>
+            ³ <a href="https://www.consumerfinance.gov/rules-policy/regulations/1026/51/" target="_blank" rel="noopener">CARD Act 2009 · Regulation Z §1026.51 ↗</a>
+          </li>
+          <li>
+            ⁴ <a href="https://www.ftc.gov/legal-library/browse/statutes/fair-credit-reporting-act" target="_blank" rel="noopener">Fair Credit Reporting Act ↗</a>
+          </li>
+        </ol>
+      </section>
+
+      <section className="gov" id="gov">
+        <div className="gov-in">
+          <div>
+            <div className="kick" style={{ color: '#a79c89' }}>
+              Governance built in
             </div>
-            <div className="labrow">
-              <span>Decisions replayed</span>
-              <b>20,000</b>
+            <blockquote style={{ marginTop: 28 }}>
+              “The person who proposes a rule change can <em>never</em> be the person who approves it.”
+              <cite>— MAKER-CHECKER, ENFORCED IN THE ENGINE</cite>
+            </blockquote>
+          </div>
+          <div className="govl">
+            <div>
+              <b>One-step rollback</b>
+              <span>Promotions and rollbacks are both written to the ledger, with who did what.</span>
             </div>
-            <div className="labrow">
-              <span>Approval rate</span>
-              <b className="dn">−4.1 pts</b>
+            <div>
+              <b>Adverse action, by template</b>
+              <span>Reason codes ranked by points lost, capped at four, rendered deterministically. No model in the loop.</span>
             </div>
-            <div className="labrow">
-              <span>Expected loss (observed)</span>
-              <b className="up">−11.8%</b>
+            <div>
+              <b>Drift you can see</b>
+              <span>Population Stability Index against the development baseline, with watch and investigate thresholds.</span>
             </div>
-            <div className="labrow" style={{ border: 0 }}>
-              <span>Outcome unknown</span>
-              <b>0 · tightening only</b>
+            <div>
+              <b>A careful assistant</b>
+              <span>Reads and explains with read-only credentials. Treats data as data. Can never make a decision.</span>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="msec light" id="gov">
-        <div className="eyeb">Governance built in</div>
+      <section className="end">
+        <div className="kick">Two views · one decision</div>
         <h2>
-          Built for how credit teams <em>actually work.</em>
+          Move the line.
+          <br />
+          <em>Keep the receipts.</em>
         </h2>
-        <div className="gov">
-          <div>
-            <b>Maker-checker</b>
-            The person who proposes a rule change can never approve it. Rollback is one action.
-          </div>
-          <div>
-            <b>Adverse action</b>
-            Reason codes ranked by points lost, capped at four, rendered from a deterministic template.
-          </div>
-          <div>
-            <b>Drift monitoring</b>
-            Population Stability Index against the development baseline, with alert thresholds.
-          </div>
-          <div>
-            <b>A careful assistant</b>
-            An AI agent that reads and explains, with read-only credentials. It can never make a decision.
-          </div>
-        </div>
+        <button className="pill" onClick={() => navigate('/login')}>
+          Open the workspace →
+        </button>
       </section>
-
-      <footer className="mfoot">
+      <footer className="foot">
         <span>© 2026 Parallax · Portfolio project · All data is synthetic</span>
         <span>Privacy&nbsp;&nbsp;&nbsp;&nbsp;Terms</span>
       </footer>
@@ -322,161 +367,86 @@ export function Marketing() {
   )
 }
 
-function QuizSection({ onOpen }: { onOpen: () => void }) {
-  const [i, setI] = useState(0)
-  const [answers, setAnswers] = useState<(number | undefined)[]>([])
-
-  const done = i >= QZ.length
-  const answeredCount = QZ.filter((_, k) => answers[k] != null).length
-
-  function answerQ(k: number) {
-    const next = answers.slice()
-    next[i] = k
-    setAnswers(next)
-    setTimeout(() => {
-      const all = QZ.map((_, j) => j)
-      const nx = all.find((j) => j > i && next[j] == null) ?? all.find((j) => next[j] == null) ?? QZ.length
-      setI(nx)
-    }, 380)
-  }
-  function stepQ(d: number) {
-    const n = i + d
-    if (n < 0 || n > QZ.length) return
-    if (d > 0 && answers[i] == null) return
-    setI(n)
-  }
-  function retake() {
-    setI(0)
-    setAnswers([])
-  }
-
-  const score = QZ.reduce((sum, q, k) => (answers[k] != null ? sum + q.o[answers[k] as number][1] : sum), 0)
-  const max = QZ.length * 2
+function AuditQuiz({ onOpen }: { onOpen: () => void }) {
+  const [answers, setAnswers] = useState<(number | null)[]>(QZ.map(() => null))
+  const answered = answers.filter((x) => x != null).length
+  const sc = answers.reduce<number>((s, k, i) => s + (k != null ? QZ[i].o[k][1] : 0), 0)
   const [lab, txt] =
-    score >= 9
+    sc >= 9
       ? ['Well governed', 'Your process already covers most of what regulators and risk committees ask for.']
-      : score >= 5
+      : sc >= 5
         ? ['Some exposure', 'A few gaps could turn a routine rule change or audit question into a scramble.']
         : ['Significant exposure', 'Rule changes and audits are likely running on trust rather than evidence.']
 
-  const nxt = done ? 'Your result' : i + 1 < QZ.length ? QZ[i + 1].q : 'Your result'
+  function answer(i: number, k: number) {
+    setAnswers((prev) => prev.map((v, j) => (j === i ? k : v)))
+  }
 
   return (
-    <section className="light-wrap" id="check">
-      <div className="quiz">
-        <div className="qz-top">
-          <div>
-            <div className="eyeb">A quick reality check</div>
-            <h2>
-              Five questions.<em>One clearer picture.</em>
-            </h2>
-          </div>
-          <p>
-            For credit strategy and risk teams. If any answer gives you pause, you're not alone — that's exactly the gap
-            Parallax was built for.
-          </p>
+    <div className="qn">
+      <div className="qh">
+        <div>QUESTION</div>
+        <div>STRONG</div>
+        <div>PARTIAL</div>
+        <div>GAP</div>
+      </div>
+      <div id="qRows">
+        {QZ.map((q: Quiz, i) => {
+          const a = answers[i]
+          const p = a != null ? q.o[a][1] : null
+          return (
+            <div className="qr" key={i}>
+              <div className="qq">
+                <span>0{i + 1}</span>
+                <div>
+                  <b>{q.q}</b>
+                  <small>{q.d}</small>
+                  {p != null && p < 2 && <span className="qhelp">→ Parallax: {q.f}</span>}
+                </div>
+              </div>
+              {q.o.map((o, k) => (
+                <button key={k} className={`qo ${a === k ? 'on' : ''}`} onClick={() => answer(i, k)}>
+                  <i />
+                  {o[0]}
+                </button>
+              ))}
+            </div>
+          )
+        })}
+      </div>
+      <div className="qtot" id="qTot">
+        <div className="sc">
+          {sc}
+          <em> / 10</em>
         </div>
-        <div className="qz-body">
-          <div className="qz-steps">
-            {QZ.map((_, k) => (
-              <span key={`n${k}`} style={{ display: 'contents' }}>
-                <span
-                  className={`n ${k === i ? 'on' : answers[k] != null ? 'done' : ''}`}
-                  onClick={() => setI(k)}
-                >
-                  0{k + 1}
-                </span>
-                <span className="ln">
-                  <i style={{ transform: `scaleX(${answers[k] != null ? 1 : k === i ? 0.18 : 0})` }} />
-                </span>
-              </span>
-            ))}
-            <span
-              className={`n ${done ? 'on' : ''}`}
-              onClick={() => {
-                if (answeredCount === QZ.length) setI(QZ.length)
-              }}
-            >
-              ✓
-            </span>
+        <div className="row">
+          <div style={{ flex: 1, minWidth: 240 }}>
+            {answered < QZ.length ? (
+              <>
+                <h4>
+                  {QZ.length - answered} line{QZ.length - answered > 1 ? 's' : ''} to go
+                </h4>
+                <p>Your total appears here as you answer.</p>
+              </>
+            ) : (
+              <>
+                <h4>{lab}.</h4>
+                <p>{txt}</p>
+              </>
+            )}
           </div>
-          {done ? (
-            <div className="qz-res fade-slide">
-              <div>
-                <div className="qz-k">YOUR RESULT</div>
-                <div className="qz-score">
-                  {score}
-                  <em> / {max}</em>
-                </div>
-                <div className="qz-q" style={{ fontSize: 40 }}>
-                  {lab}.
-                </div>
-                <div className="qz-d">{txt}</div>
-                <div className="cta-row" style={{ marginTop: 30 }}>
-                  <button className="btn-gold" onClick={onOpen}>
-                    Open the workspace <span>↗</span>
-                  </button>
-                  <button className="btn-line" style={{ color: 'var(--navy)', borderColor: 'var(--navy)' }} onClick={retake}>
-                    Retake <span>↺</span>
-                  </button>
-                </div>
-              </div>
-              <div className="qz-map">
-                <div className="qz-k" style={{ padding: 0, border: 0, margin: '0 0 6px' }}>
-                  WHERE PARALLAX HELPS
-                </div>
-                {QZ.map((q, k) => {
-                  const p = q.o[answers[k] as number][1]
-                  return (
-                    <div key={k}>
-                      <span>
-                        {p === 2 && <span className="ok">✓</span>} {q.q.replace(/ — exactly\?|\?$/, '')}
-                      </span>
-                      <b>{p === 2 ? <span className="ok">Covered</span> : q.f}</b>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          ) : (
-            <div className="fade-slide" key={i}>
-              <div className="qz-k">
-                QUESTION 0{i + 1} / 0{QZ.length}
-              </div>
-              <div className="qz-q">{QZ[i].q}</div>
-              <div className="qz-d">{QZ[i].d}</div>
-              <div className="qz-opts">
-                {QZ[i].o.map((o, k) => (
-                  <button key={k} className={answers[i] === k ? 'on' : ''} onClick={() => answerQ(k)}>
-                    {o[0]}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-        <div className="qz-foot">
-          <div>
-            <button className="circ" onClick={() => stepQ(-1)} disabled={i === 0}>
-              ←
-            </button>
-            <button className="circ" onClick={() => stepQ(1)} disabled={done || answers[i] == null}>
-              →
-            </button>
-          </div>
-          {done ? (
-            <div className="qz-next">
-              <small>WHAT'S NEXT</small>
-              <span>See each of these working in the workspace.</span>
-            </div>
-          ) : (
-            <div className="qz-next">
-              <small>UP NEXT</small>
-              <span>{nxt}</span>
-            </div>
+          {answered === QZ.length && (
+            <>
+              <button className="pill" onClick={onOpen}>
+                See it working →
+              </button>
+              <button className="tlink" onClick={() => setAnswers(QZ.map(() => null))}>
+                Reset
+              </button>
+            </>
           )}
         </div>
       </div>
-    </section>
+    </div>
   )
 }

@@ -103,13 +103,21 @@ export function Assistant() {
   return (
     <>
       <PageHeader
-        eyebrow="Assistant"
-        title="Underwriter & strategist agent"
-        description="Answers questions by calling Parallax APIs as tools. Read-only credentials, masked PII, numbers only from tool results. It can never make or change a decision."
-        right={<span className="chipbox">role: ASSISTANT (read-only)</span>}
+        title={
+          <>
+            The <em>assistant</em>
+          </>
+        }
+        description="Answers by calling Parallax APIs as tools. Read-only credentials, masked PII, numbers only from tool results. It can never make or change a decision."
+        right={
+          <span className="chip">
+            <i />
+            ASSISTANT · read-only
+          </span>
+        }
       />
       <div className="chat">
-        <Card style={{ display: 'flex', flexDirection: 'column' }}>
+        <div className="tile" style={{ display: 'flex', flexDirection: 'column' }}>
           <div className="msgs" ref={msgsRef}>
             {messages.length === 0 && (
               <div className="msg a">
@@ -156,22 +164,24 @@ export function Assistant() {
               Send
             </button>
           </div>
-        </Card>
+        </div>
 
         <Card>
-          <h3>Tools</h3>
+          <div className="th">
+            <h3>Tools</h3>
+          </div>
           <p className="note" style={{ margin: '0 0 10px' }}>
-            Spring AI @Tool methods, calling application-service with a read-only token.
+            Spring AI @Tool methods calling application-service with a read-only token.
           </p>
           {(tools || []).map((t) => (
             <div className="svc" key={t.name}>
               <code className="mono">{t.name}()</code>
-              <span className="pill">{t.access}</span>
+              <span className="pill2">{t.access}</span>
             </div>
           ))}
           <div className="svc">
             <code className="mono">approveApplication()</code>
-            <span className="pill" style={{ color: 'var(--bad)' }}>
+            <span className="pill2" style={{ color: 'var(--rust)' }}>
               not registered
             </span>
           </div>
@@ -179,10 +189,10 @@ export function Assistant() {
             Guardrails
           </div>
           <div className="vlist t-muted">
-            <div>• Tool output is data, never instructions</div>
-            <div>• Every figure must come from a tool result</div>
-            <div>• Identity fields masked before the model sees them</div>
-            <div>• 15-question eval set runs in CI</div>
+            <div>· Tool output is data, never instructions</div>
+            <div>· Every figure must come from a tool result</div>
+            <div>· Identity fields masked before the model sees them</div>
+            <div>· 15-question eval set runs in CI</div>
           </div>
         </Card>
       </div>

@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { PageHeader, Card } from '../ui/components'
+import { PageHeader, Card, Kpi } from '../ui/components'
 import { useAccounts } from '../api/hooks'
 import { fmt, money, moneyCents, pct } from '../ui/format'
 
@@ -15,31 +15,14 @@ export function Accounts() {
   return (
     <>
       <PageHeader
-        eyebrow="Lifecycle"
-        title="Accounts"
+        title={<>Accounts</>}
         description="Accounts opened from approved decisions through the transactional outbox. Statements, payments and credit line increases."
       />
-      <div className="kpis k4">
-        <div className="kpi">
-          <div className="lbl">Accounts</div>
-          <div className="v">{fmt(items.length)}</div>
-          <small>open</small>
-        </div>
-        <div className="kpi">
-          <div className="lbl">Total balance</div>
-          <div className="v">{moneyCents(totalBalance)}</div>
-          <small>across the book</small>
-        </div>
-        <div className="kpi">
-          <div className="lbl">Average utilization</div>
-          <div className="v">{pct(avgUtil, 0)}</div>
-          <small>balance vs limit</small>
-        </div>
-        <div className="kpi">
-          <div className="lbl">Delinquent</div>
-          <div className={`v ${delinquent ? 't-warn' : ''}`}>{fmt(delinquent)}</div>
-          <small>30+ days past due</small>
-        </div>
+      <div className="g" style={{ gridTemplateColumns: 'repeat(4,1fr)', marginBottom: 26 }}>
+        <Kpi label="Accounts" value={fmt(items.length)} sub="open" />
+        <Kpi label="Total balance" value={moneyCents(totalBalance)} sub="across the book" />
+        <Kpi label="Average utilization" value={pct(avgUtil, 0)} sub="balance vs limit" />
+        <Kpi label="Delinquent" value={fmt(delinquent)} sub="30+ days past due" cls={delinquent ? 't-warn' : ''} />
       </div>
 
       <Card>

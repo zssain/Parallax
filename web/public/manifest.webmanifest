@@ -1,13 +1,13 @@
 {
   "name": "Parallax",
   "short_name": "Parallax",
-  "description": "Two views. One decision.",
+  "description": "Move the line. See who moves with it.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0b1830",
-  "theme_color": "#0b1830",
+  "background_color": "#1b1814",
+  "theme_color": "#1b1814",
   "icons": [
-    { "src": "/brand/parallax-app-icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "/brand/parallax-app-icon-180.png", "sizes": "180x180", "type": "image/png" }
+    { "src": "/brand/parallax-icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/brand/parallax-icon-180.png", "sizes": "180x180", "type": "image/png" }
   ]
 }

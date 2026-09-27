@@ -56,7 +56,6 @@ export function AccountDetail() {
 
   const header = (
     <PageHeader
-      eyebrow="Lifecycle"
       title={id || 'Account'}
       description="Statements, transactions, payment history and credit line increases for this account."
       right={
@@ -73,34 +72,37 @@ export function AccountDetail() {
   return (
     <>
       {header}
-      <div className="kpis k4">
-        <div className="kpi">
+      <div className="bento" style={{ marginBottom: 14 }}>
+        <div className="tile s3">
           <div className="lbl">Credit limit</div>
-          <div className="v">{money(acc.creditLimit || 0)}</div>
-          <small>APR {((data?.aprBps || 0) / 100).toFixed(2)}%</small>
+          <div className="big">{money(acc.creditLimit || 0)}</div>
+          <small className="t-muted">APR {((data?.aprBps || 0) / 100).toFixed(2)}%</small>
         </div>
-        <div className="kpi">
+        <div className="tile s3">
           <div className="lbl">Balance</div>
-          <div className="v">{moneyCents(acc.balanceCents || 0)}</div>
-          <small>current</small>
+          <div className="big">{moneyCents(acc.balanceCents || 0)}</div>
+          <small className="t-muted">current</small>
         </div>
-        <div className="kpi">
+        <div className="tile s3">
           <div className="lbl">Utilization</div>
-          <div className="v">{pct(acc.utilization || 0, 0)}</div>
-          <small>balance vs limit</small>
+          <div className="big">{pct(acc.utilization || 0, 0)}</div>
+          <small className="t-muted">balance vs limit</small>
         </div>
-        <div className="kpi">
+        <div className="tile s3">
           <div className="lbl">Status · DPD</div>
-          <div className={`v ${acc.daysPastDue ? 't-bad' : ''}`}>
+          <div className={`big ${acc.daysPastDue ? 't-bad' : ''}`}>
             {acc.status} · {acc.daysPastDue || 0}
           </div>
-          <small>days past due</small>
+          <small className="t-muted">days past due</small>
         </div>
       </div>
 
       <div className="g g21">
         <Card>
-          <h3>Payment history</h3>
+          <div className="th">
+            <h3>Payment history</h3>
+            <span className="lbl">last 12</span>
+          </div>
           <div className="payhist">
             {statements
               .slice()
@@ -118,7 +120,9 @@ export function AccountDetail() {
         </Card>
 
         <Card>
-          <h3>Credit line increase</h3>
+          <div className="th">
+            <h3>Credit line increase</h3>
+          </div>
           <div className="form" style={{ gridTemplateColumns: '1fr' }}>
             <div className="f">
               <label>Requested limit</label>
@@ -138,9 +142,9 @@ export function AccountDetail() {
           {result && (
             <div
               className="rc"
-              style={{ marginTop: 12, borderLeftColor: result.outcome === 'DECLINED' ? 'var(--bad)' : 'var(--ok)' }}
+              style={{ marginTop: 12, borderLeftColor: result.outcome === 'DECLINED' ? 'var(--rust)' : 'var(--moss)' }}
             >
-              <code style={{ color: result.outcome === 'DECLINED' ? 'var(--bad)' : 'var(--ok)' }}>{result.outcome}</code>
+              <code style={{ color: result.outcome === 'DECLINED' ? 'var(--rust)' : 'var(--moss)' }}>{result.outcome}</code>
               <span>
                 new limit {money(result.newLimit || 0)}
                 {result.reasons && result.reasons.length ? ' · ' + result.reasons.join(', ') : ''}
@@ -152,7 +156,9 @@ export function AccountDetail() {
 
       <div className="g g2">
         <Card>
-          <h3>Statements</h3>
+          <div className="th">
+            <h3>Statements</h3>
+          </div>
           <table>
             <thead>
               <tr>
@@ -185,7 +191,9 @@ export function AccountDetail() {
         </Card>
 
         <Card>
-          <h3>Transactions</h3>
+          <div className="th">
+            <h3>Transactions</h3>
+          </div>
           <table>
             <thead>
               <tr>
@@ -200,7 +208,7 @@ export function AccountDetail() {
                 <tr key={i}>
                   <td className="t-muted">{t.postedAt}</td>
                   <td>
-                    <span className="pill">{t.type}</span>
+                    <span className="pill2">{t.type}</span>
                   </td>
                   <td>{moneyCents(t.amountCents || 0)}</td>
                   <td>{t.description}</td>
@@ -212,7 +220,9 @@ export function AccountDetail() {
       </div>
 
       <Card>
-        <h3>Simulate a month</h3>
+        <div className="th">
+          <h3>Simulate a month</h3>
+        </div>
         <div className="form">
           <div className="f">
             <label>Purchases ($)</label>

@@ -20,22 +20,25 @@ interface ModalValue {
 const Ctx = createContext<ModalValue | null>(null)
 
 const THEME_VARS = [
-  '--panel',
-  '--panel2',
+  '--bg',
+  '--tile',
+  '--card',
   '--ink',
+  '--ink2',
   '--muted',
   '--line',
-  '--acc',
-  '--accbg',
-  '--bad',
-  '--badbg',
-  '--warn',
-  '--warnbg',
-  '--ok',
-  '--okbg',
-  '--info',
-  '--infobg',
+  '--gold',
+  '--goldbg',
+  '--moss',
+  '--mossbg',
+  '--ochre',
+  '--ochrebg',
+  '--rust',
+  '--rustbg',
+  '--plum',
+  '--plumbg',
   '--code',
+  '--dock',
 ]
 
 /** Copy the app root's resolved theme variables onto the modal, which lives outside `.app`. */

@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
-import { PageHeader, LiveChips, Card, DecisionTable } from '../ui/components'
+import { PageHeader, LiveChips, Card, DecisionTable, OCM } from '../ui/components'
 import { useDecisions } from '../api/hooks'
 import { useAuth } from '../app/AuthProvider'
-import { cap } from '../ui/format'
 
 const FILTERS = ['ALL', 'APPROVED', 'REFER', 'DECLINED'] as const
 
@@ -20,29 +19,30 @@ export function Decisions() {
 
   const { data } = useDecisions({ outcome, q, size: 100 })
   const counts = data?.counts
-  const label = (o: string) => (o === 'ALL' ? 'All' : cap(o))
+  const label = (o: string) => (o === 'ALL' ? 'All' : OCM[o][1])
   const count = (o: string) => (counts ? counts[o as keyof typeof counts] : 0)
 
   return (
     <>
       <PageHeader
-        eyebrow="Decisions"
-        title="Every application, every outcome"
-        description="The current state of each application. Click a row to see how the engine decided, reproduce it, or read its ledger trail."
+        title="Decisions"
+        description="Every application and where it landed. Open one to see exactly how the engine decided."
         right={<LiveChips />}
       />
       <Card>
-        <div className="row" style={{ marginBottom: 14 }}>
-          {FILTERS.map((o) => (
-            <button key={o} className={`btn sm ${outcome === o ? 'p' : ''}`} onClick={() => setOutcome(o)}>
-              {label(o)} · {count(o)}
-            </button>
-          ))}
+        <div className="row" style={{ marginBottom: 12 }}>
+          <div className="utabs">
+            {FILTERS.map((o) => (
+              <button key={o} className={outcome === o ? 'on' : ''} onClick={() => setOutcome(o)}>
+                {label(o)}
+                <span>{count(o)}</span>
+              </button>
+            ))}
+          </div>
           <span className="sp" />
           <input
-            className="usel"
-            style={{ width: 260, margin: 0, padding: '10px 12px', fontSize: 14 }}
-            placeholder="Search APP-ID"
+            className="search"
+            placeholder="Search name or APP-ID"
             value={input}
             onChange={(e) => setInput(e.target.value)}
           />

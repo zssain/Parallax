@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArchArt } from '../ui/ArchArt'
+import { Wordmark } from '../ui/brand'
 import { DEMO_USERS } from '../app/demoUsers'
 import { useAuth } from '../app/AuthProvider'
 import { useToast } from '../app/ToastProvider'
 import { ApiError } from '../api/client'
+import { cap } from '../ui/format'
 
 export function Login() {
   const navigate = useNavigate()
@@ -15,10 +16,12 @@ export function Login() {
   const [password, setPassword] = useState('demo-password')
   const [busy, setBusy] = useState(false)
 
+  const u = DEMO_USERS.find((x) => x.id === roleId) ?? DEMO_USERS[0]
+
   function pickRole(id: string) {
     setRoleId(id)
-    const u = DEMO_USERS.find((x) => x.id === id)
-    if (u) setEmail(u.email)
+    const next = DEMO_USERS.find((x) => x.id === id)
+    if (next) setEmail(next.email)
   }
 
   async function doLogin() {
@@ -31,7 +34,7 @@ export function Login() {
     try {
       const me = await login(e, password)
       navigate('/app')
-      toast(`Signed in as ${me.displayName} · ${me.role}`, 'ok')
+      toast(`Signed in as ${me.displayName} · ${me.role} · press ⌘K / Ctrl K to jump anywhere`, 'ok')
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) toast('Sign-in failed — check the email and password', 'bad')
       else toast('Sign-in failed — check the email and password', 'bad')
@@ -42,73 +45,79 @@ export function Login() {
 
   return (
     <div id="login">
-      <div className="lg-l">
-        <div className="lg-top">
-          <img className="wordmark-img" src="/brand/parallax-wordmark-navy.svg" alt="Parallax" />
-          <button className="back" onClick={() => navigate('/')}>
-            {'←  Back to website'}
-          </button>
+      <div className="lg-wm">parallax</div>
+      <header className="lg-h">
+        <Wordmark markSize={22} onClick={() => navigate('/')} />
+        <button className="lg-back" onClick={() => navigate('/')}>
+          ← Back to site
+        </button>
+      </header>
+      <div className="lg-card">
+        <div className="kick">Demo workspace · synthetic data</div>
+        <h1>
+          Sign in to
+          <br />
+          <em>the ledger.</em>
+        </h1>
+        <div className="lbl" style={{ fontFamily: 'var(--mono)', fontSize: 10.5, letterSpacing: '.14em', color: 'var(--mut)', marginBottom: 10 }}>
+          CHOOSE A ROLE
         </div>
-        <div className="lg-form">
-          <div className="lg-meta">
-            <div className="eyeb">Your Parallax workspace</div>
-            <span>🛡&nbsp; Secure workspace access</span>
+        <div className="rtabs">
+          {DEMO_USERS.map((x) => (
+            <button key={x.id} className={x.id === roleId ? 'on' : ''} onClick={() => pickRole(x.id)}>
+              {cap(x.role)}
+            </button>
+          ))}
+        </div>
+        <div className="perm">
+          <div className="pn">
+            <span className="av">{u.name[0]}</span>
+            <div>
+              <b>{u.name}</b>
+              <small>{u.desc}</small>
+            </div>
           </div>
-          <h1>Welcome back.</h1>
-          <p>Sign in to continue into your credit decisioning workspace. Demo accounts below let you see each role's view.</p>
-          <label className="fl">Demo account</label>
-          <div className="roles">
-            {DEMO_USERS.map((u) => (
-              <button key={u.id} className={roleId === u.id ? 'on' : ''} onClick={() => pickRole(u.id)}>
-                <b>{u.name}</b> · {u.role.toLowerCase()}
-                <small>{u.desc}</small>
-              </button>
-            ))}
+          <div className="cols">
+            <div>
+              <h5>CAN</h5>
+              <ul>
+                {u.can.map((c) => (
+                  <li key={c} className="y">
+                    {c}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h5>CANNOT</h5>
+              <ul>
+                {u.cannot.map((c) => (
+                  <li key={c} className="n">
+                    {c}
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
-          <label className="fl">Email address</label>
+        </div>
+        <div className="lf">
+          <label>Email</label>
+          <input placeholder="you@company.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+        </div>
+        <div className="lf">
+          <label>Password</label>
           <input
-            className="fin"
-            placeholder="you@company.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && doLogin()}
-          />
-          <label className="fl">Password</label>
-          <input
-            className="fin"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && doLogin()}
           />
-          <button className="btn-teal" onClick={doLogin} disabled={busy}>
-            <span>Sign in</span>
-            <span>↗</span>
-          </button>
         </div>
-        <div className="lg-foot">
-          <span>© 2026 Parallax</span>
-          <span>Privacy&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Terms</span>
-        </div>
-      </div>
-      <div className="lg-r">
-        <div className="eyeb">The credit decisioning platform</div>
-        <h2>
-          Two views.<em>One decision.</em>
-        </h2>
-        <p>
-          Live rules. Candidate rules.
-          <br />
-          The evidence between them.
-        </p>
-        <div className="lg-frame">
-          <ArchArt uid="login" />
-        </div>
-        <div className="lg-bot">
-          <span>Decide.</span>
-          <span>Record.</span>
-          <span>Replay.</span>
-        </div>
+        <button className="pill lg-go" onClick={doLogin} disabled={busy}>
+          <span>Enter workspace</span>
+          <span>→</span>
+        </button>
+        <div className="lg-note">You can switch roles any time from the account menu</div>
       </div>
     </div>
   )

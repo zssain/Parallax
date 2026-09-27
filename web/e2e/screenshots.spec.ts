@@ -6,7 +6,7 @@ const DIR = '../docs/screenshots/compare'
 // the seeded stack + `npm run dev` are up.
 test('marketing, login and shell screenshots', async ({ page }) => {
   await page.goto('/')
-  await page.waitForSelector('#hero')
+  await page.waitForSelector('#stage')
   await page.waitForTimeout(400)
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.screenshot({ path: `${DIR}/marketing-1440.png`, fullPage: true })
@@ -23,9 +23,9 @@ test('marketing, login and shell screenshots', async ({ page }) => {
   // Sign in as Aditi (email prefilled by the default role) and capture the empty shell.
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/login')
-  await page.click('button.btn-teal')
+  await page.getByRole('button', { name: /Enter workspace/ }).click()
   await page.waitForURL('**/app')
-  await page.waitForSelector('.side')
+  await page.waitForSelector('.dock')
   await page.waitForTimeout(600)
   await page.screenshot({ path: `${DIR}/shell-overview-1440.png`, fullPage: true })
 })

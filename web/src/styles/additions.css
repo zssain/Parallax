@@ -1,35 +1,15 @@
-/* Additions for the two §16 LIFECYCLE screens (Accounts, Collections). The LIFECYCLE nav section
-   itself reuses the prototype's .navsec/.navi with no new rules. Everything below is only what the
-   new screens need beyond the prototype's card language; each rule is listed in the Prompt 20 report.
+/* Additions for the two §16 LIFECYCLE screens (Accounts, Collections), retokenised to the v2
+   design system (bone/ink/rust/gold). These screens are not part of the standalone v2 prototype, so
+   they reuse the v2 card language (.tile, .pill2, tables) plus the two extras below.
 
-   1. .payhist / .payhist .cell(.ok/.bad) / .payhist .mo — the Accounts "Payment history" 12-cell strip.
-   2. .pill.hi / .pill.med / .pill.low — the Collections priority pill colours (HIGH/MEDIUM/LOW). */
+   1. .payhist — the Accounts "Payment history" 12-cell strip.
+   2. .pill2.hi / .pill2.med / .pill2.low — the Collections priority pill colours (HIGH/MEDIUM/LOW). */
 .payhist { display: grid; grid-template-columns: repeat(12, 1fr); gap: 8px; margin: 10px 0 4px; }
 .payhist .col { display: flex; flex-direction: column; align-items: stretch; }
-.payhist .cell { height: 34px; border-radius: 8px; background: var(--panel2); border: 1px solid var(--line); display: grid; place-items: center; font-weight: 700; font-size: 12px; color: var(--muted); }
-.payhist .cell.ok { background: var(--okbg); color: var(--ok); border-color: transparent; }
-.payhist .cell.bad { background: var(--badbg); color: var(--bad); border-color: transparent; }
+.payhist .cell { height: 34px; border-radius: 8px; background: var(--bg); border: 1px solid var(--line); display: grid; place-items: center; font-weight: 700; font-size: 12px; color: var(--muted); }
+.payhist .cell.ok { background: var(--mossbg); color: var(--moss); border-color: transparent; }
+.payhist .cell.bad { background: var(--rustbg); color: var(--rust); border-color: transparent; }
 .payhist .mo { font-size: 10px; text-align: center; color: var(--muted); margin-top: 5px; }
-.pill.hi { color: var(--bad); }
-.pill.med { color: var(--warn); }
-.pill.low { color: var(--muted); }
-
-/* 3. Brand logo (Prompt 23 fix): render the actual Parallax wordmark/symbol SVGs instead of the
-      prototype's text-only "parallax." wordmark. The React side swaps the src by theme (isDark);
-      the collapsed rail shows the square symbol in place of the full wordmark. */
-.wordmark-img { height: 30px; width: auto; display: block; }
-#login .wordmark-img { height: 34px; }
-/* The wordmark SVG is monochrome navy; whiten it on dark backgrounds (dark theme, the navy marketing nav). */
-.app.dark .wordmark-img,
-.mnav .wordmark-img { filter: brightness(0) invert(1); }
-.brand-mark { height: 32px; width: 32px; display: none; }
-.collapsed .side .wordmark-img { display: none; }
-.collapsed .side-top .brand-mark { display: block; }
-.collapsed .side-top { flex-direction: column; gap: 12px; } /* symbol above the collapse button */
-
-/* 4. Collapsed sidebar footer fix (Prompt 23): at 88px the user row and the three-button theme
-      toggle overflowed the rail (the toggle spilled past the edge). Stack them vertically and centre
-      so everything fits the collapsed width. */
-.collapsed .ucard { padding: 18px 0 0; display: flex; flex-direction: column; align-items: center; }
-.collapsed .urow { flex-direction: column; gap: 10px; }
-.collapsed .theme { flex-direction: column; }
+.pill2.hi { color: var(--rust); }
+.pill2.med { color: var(--ochre); }
+.pill2.low { color: var(--muted); }

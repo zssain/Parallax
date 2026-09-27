@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { PageHeader, Card, OutcomePill } from '../ui/components'
+import { PageHeader, OutcomePill } from '../ui/components'
 import { useReviewQueue, useOverrideStats, useApplication, useSubmitReview } from '../api/hooks'
 import { useAuth } from '../app/AuthProvider'
 import { useToast } from '../app/ToastProvider'
@@ -8,6 +8,13 @@ import { money, pct } from '../ui/format'
 import { OVERRIDE_CODES } from '../ui/reasons'
 import { ApiError } from '../api/client'
 import type { QueueItem } from '../api/types'
+
+// v2's "Waiting" badge: fraud flags win, then a bureau-outage refer (B01), else score band.
+function reasonBadge(item: QueueItem): string {
+  if (item.fraudFlags?.length) return 'fraud'
+  if (item.reasonKind === 'bureau' || item.reasonCodes?.[0] === 'B01') return 'bureau'
+  return 'score'
+}
 
 export function Queue() {
   const [params] = useSearchParams()
@@ -103,28 +110,45 @@ export function Queue() {
 
   const header = (
     <PageHeader
-      eyebrow="Review queue"
-      title="Referred applications"
-      description="REFERs from the score band, fraud flags or bureau outages. Underwriters approve or decline with a note and an override reason code."
-      right={<span className="chipbox">{items.length} open</span>}
+      title={
+        <>
+          Review <em>queue</em>
+        </>
+      }
+      description="Refers from the score band, fraud flags or bureau outages. Underwriters decide with a note and an override reason code."
+      right={
+        <span className="chip">
+          <b>Open</b> {items.length}
+        </span>
+      }
     />
   )
 
   const right = selected ? (
-    <Card>
-      <h3>
-        {selected.applicationId} · {selected.displayName} <OutcomePill outcome="REFER" />
-      </h3>
-      <div className="g g2" style={{ marginBottom: 10 }}>
-        <div>
+    <div className="tile w" style={{ padding: '28px 30px' }}>
+      <div className="lbl">Reviewing</div>
+      <div className="row" style={{ margin: '8px 0 18px' }}>
+        <h2 style={{ fontFamily: 'var(--serif)', fontWeight: 400, fontSize: 38, letterSpacing: '-.02em' }}>
+          {selected.applicationId}
+        </h2>
+        <span className="t-muted" style={{ fontSize: 16 }}>
+          {selected.displayName}
+        </span>
+        <span className="sp" />
+        <OutcomePill outcome="REFER" />
+      </div>
+      <div className="g g2" style={{ marginBottom: 12 }}>
+        <div className="tile" style={{ padding: '16px 18px' }}>
           <div className="lbl">Score</div>
-          <div style={{ fontSize: 26, fontWeight: 700 }}>{selected.score ?? '—'}</div>
+          <div className="big" style={{ fontSize: 40, margin: '8px 0 0' }}>
+            {selected.score ?? '—'}
+          </div>
         </div>
-        <div>
+        <div className="tile" style={{ padding: '16px 18px' }}>
           <div className="lbl">Why it was referred</div>
-          <div style={{ marginTop: 6 }}>
+          <div style={{ marginTop: 12 }}>
             {(selected.reasonCodes || []).slice(0, 4).map((r) => (
-              <span key={r} className="pill" title={descOf[r] || r}>
+              <span key={r} className="pill2" title={descOf[r] || r}>
                 {r}
               </span>
             ))}
@@ -142,7 +166,7 @@ export function Queue() {
           <code>B01</code>Bureau was unavailable. This will auto re-decide when the circuit closes — or review manually now.
         </div>
       )}
-      <div className="form" style={{ marginTop: 16 }}>
+      <div className="form" style={{ marginTop: 20 }}>
         <div className="f">
           <label>Decision</label>
           <select value={decision} onChange={(e) => setDecision(e.target.value)}>
@@ -168,27 +192,27 @@ export function Queue() {
           </select>
         </div>
         <div className="f full">
-          <label>Underwriter note (required)</label>
+          <label>Underwriter note · required</label>
           <textarea rows={3} placeholder="What did you verify and how?" value={note} onChange={(e) => setNote(e.target.value)} />
         </div>
       </div>
-      <div className="row" style={{ marginTop: 14 }}>
+      <div className="row" style={{ marginTop: 18 }}>
         <button className="btn" onClick={() => navigate(`/app/decisions/${selected.applicationId}`)}>
           Open full decision
         </button>
         <span className="sp" />
         <button className="btn p" onClick={record}>
-          Record decision
+          Record decision →
         </button>
       </div>
       <p className="note">
-        Recorded as a new OVERRIDE ledger entry linked to #{selected.baseSeq}. The original decision is never modified.
+        Recorded as a new OVERRIDE entry linked to #{selected.baseSeq}. The original decision is never modified.
       </p>
-    </Card>
+    </div>
   ) : (
-    <Card>
-      <div className="empty">The review queue is empty. 🎉</div>
-    </Card>
+    <div className="tile w">
+      <div className="empty">The queue is empty. Nicely done.</div>
+    </div>
   )
 
   return (
@@ -196,8 +220,11 @@ export function Queue() {
       {header}
       <div className="g g12">
         <div>
-          <Card style={{ marginBottom: 20 }}>
-            <h3>Queue</h3>
+          <div className="tile" style={{ marginBottom: 14 }}>
+            <div className="th">
+              <h3>Waiting</h3>
+              <span className="lbl">oldest first</span>
+            </div>
             {items.length ? (
               <table>
                 <tbody>
@@ -212,9 +239,9 @@ export function Queue() {
                         <br />
                         <small className="t-muted">{r.displayName}</small>
                       </td>
-                      <td>{r.score ?? '—'}</td>
+                      <td className="mono">{r.score ?? '—'}</td>
                       <td>
-                        <span className="pill">{r.reasonKind}</span>
+                        <span className="pill2">{reasonBadge(r)}</span>
                       </td>
                     </tr>
                   ))}
@@ -223,23 +250,26 @@ export function Queue() {
             ) : (
               <div className="empty">Empty</div>
             )}
-          </Card>
-          <Card>
-            <h3>Override rate by band</h3>
+          </div>
+          <div className="tile">
+            <div className="th">
+              <h3>Override rate</h3>
+              <span className="lbl">by score band</span>
+            </div>
             <table>
               <thead>
                 <tr>
                   <th>Band</th>
                   <th>Refers</th>
-                  <th>Overridden to approve</th>
+                  <th>To approve</th>
                 </tr>
               </thead>
               <tbody>
                 {(stats?.bands || []).map((b) => (
                   <tr key={b.band}>
                     <td>{b.band}</td>
-                    <td>{b.refers}</td>
-                    <td>
+                    <td className="mono">{b.refers}</td>
+                    <td className="mono">
                       {b.overriddenToApprove}{' '}
                       {b.refers ? <span className="t-muted">({pct((b.rate as number) || 0)})</span> : null}
                     </td>
@@ -248,9 +278,9 @@ export function Queue() {
               </tbody>
             </table>
             <p className="note">
-              A high override rate in one band suggests it is miscalibrated — a signal for the Strategy Lab.
+              A high override rate in one band suggests it's miscalibrated — a signal for the Strategy Lab.
             </p>
-          </Card>
+          </div>
         </div>
         {right}
       </div>
