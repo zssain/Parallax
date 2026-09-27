@@ -66,12 +66,18 @@ export function useStartReplay() {
   })
 }
 
-export function useReplayJob(jobId: string | undefined, refetchInterval: number | false) {
+export function useReplayJob(jobId: string | undefined, poll: boolean) {
   return useQuery({
     queryKey: keys.replayJob(jobId || ''),
     queryFn: () => apiFetch<JobView>(`/api/v1/lab/replays/${jobId}`),
     enabled: !!jobId,
-    refetchInterval,
+    // Poll every 500 ms while the job is QUEUED or RUNNING (SPEC §10).
+    refetchInterval: poll
+      ? (query) => {
+          const s = (query.state.data as JobView | undefined)?.status
+          return s === 'QUEUED' || s === 'RUNNING' ? 500 : false
+        }
+      : undefined,
   })
 }
 

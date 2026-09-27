@@ -20,6 +20,13 @@ export function fmtMonth(ym: string): string {
   return `${MONTHS[Number(m) - 1]} ${y}`
 }
 
+/** "2026-09-30" → "Sep". */
+export function monthShort(iso?: string): string {
+  if (!iso) return ''
+  const m = Number(iso.slice(5, 7))
+  return MONTHS[m - 1] || ''
+}
+
 /** PSI status ("stable"/"watch"/"investigate") → text-colour class. */
 export function psiCls(status?: string): string {
   return status === 'stable' ? 't-ok' : status === 'watch' ? 't-warn' : status === 'investigate' ? 't-bad' : ''
