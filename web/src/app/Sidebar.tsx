@@ -56,8 +56,14 @@ export function Sidebar({ onToggleCollapse }: { onToggleCollapse: () => void }) 
   const location = useLocation()
   const navigate = useNavigate()
   const { me, switchUser, logout } = useAuth()
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme, isDark } = useTheme()
   const { toast } = useToast()
+
+  // The actual brand assets. The wordmark is the monochrome navy mark, whitened on dark themes via a
+  // CSS filter (the "-light" wordmark has navy letters, so it is not usable on dark). The collapsed
+  // rail shows the square symbol (its own dark/light variants keep the teal+gold accents legible).
+  const wordmarkSrc = '/brand/parallax-wordmark-navy.svg'
+  const symbolSrc = isDark ? '/brand/parallax-symbol-light.svg' : '/brand/parallax-symbol-dark.svg'
 
   const { data: queue } = useReviewQueue({ refetchInterval: 30000 })
   const { data: versions } = useVersions()
@@ -76,7 +82,8 @@ export function Sidebar({ onToggleCollapse }: { onToggleCollapse: () => void }) 
   return (
     <aside className="side">
       <div className="side-top">
-        <div className="wordmark">parallax.</div>
+        <img className="wordmark-img" src={wordmarkSrc} alt="Parallax" />
+        <img className="brand-mark" src={symbolSrc} alt="Parallax" />
         <button className="icbtn" title="Collapse" onClick={onToggleCollapse}>
           <Icon name="collapse" />
         </button>

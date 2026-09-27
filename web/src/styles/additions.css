@@ -13,3 +13,23 @@
 .pill.hi { color: var(--bad); }
 .pill.med { color: var(--warn); }
 .pill.low { color: var(--muted); }
+
+/* 3. Brand logo (Prompt 23 fix): render the actual Parallax wordmark/symbol SVGs instead of the
+      prototype's text-only "parallax." wordmark. The React side swaps the src by theme (isDark);
+      the collapsed rail shows the square symbol in place of the full wordmark. */
+.wordmark-img { height: 30px; width: auto; display: block; }
+#login .wordmark-img { height: 34px; }
+/* The wordmark SVG is monochrome navy; whiten it on dark backgrounds (dark theme, the navy marketing nav). */
+.app.dark .wordmark-img,
+.mnav .wordmark-img { filter: brightness(0) invert(1); }
+.brand-mark { height: 32px; width: 32px; display: none; }
+.collapsed .side .wordmark-img { display: none; }
+.collapsed .side-top .brand-mark { display: block; }
+.collapsed .side-top { flex-direction: column; gap: 12px; } /* symbol above the collapse button */
+
+/* 4. Collapsed sidebar footer fix (Prompt 23): at 88px the user row and the three-button theme
+      toggle overflowed the rail (the toggle spilled past the edge). Stack them vertically and centre
+      so everything fits the collapsed width. */
+.collapsed .ucard { padding: 18px 0 0; display: flex; flex-direction: column; align-items: center; }
+.collapsed .urow { flex-direction: column; gap: 10px; }
+.collapsed .theme { flex-direction: column; }

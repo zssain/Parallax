@@ -44,7 +44,7 @@ export function Login() {
     <div id="login">
       <div className="lg-l">
         <div className="lg-top">
-          <div className="wordmark dark">parallax.</div>
+          <img className="wordmark-img" src="/brand/parallax-wordmark-navy.svg" alt="Parallax" />
           <button className="back" onClick={() => navigate('/')}>
             {'←  Back to website'}
           </button>

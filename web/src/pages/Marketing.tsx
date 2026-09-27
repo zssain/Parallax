@@ -115,7 +115,7 @@ export function Marketing() {
   return (
     <div id="site">
       <header className="mnav">
-        <div className="wordmark light">parallax.</div>
+        <img className="wordmark-img" src="/brand/parallax-wordmark-navy.svg" alt="Parallax" />
         <nav>
           <a onClick={() => scrollToId('how')}>Platform</a>
           <a onClick={() => scrollToId('lab')}>Strategy Lab</a>
