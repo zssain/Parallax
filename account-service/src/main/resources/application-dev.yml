@@ -1,0 +1,6 @@
+# Dev profile: expose OpenAPI docs and Swagger UI, and enable the demo-only simulate-month endpoint.
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true

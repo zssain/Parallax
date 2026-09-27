@@ -1,0 +1,45 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: account-service
+  # Runtime connects as the least-privilege role accounts_app (grants in V1__accounts.sql).
+  datasource:
+    url: jdbc:postgresql://localhost:5432/accounts
+    username: accounts_app
+    password: ${ACCOUNTS_APP_PASSWORD:app-dev}
+  # Flyway migrates as the schema owner accounts_owner.
+  flyway:
+    url: jdbc:postgresql://localhost:5432/accounts
+    user: accounts_owner
+    password: ${ACCOUNTS_OWNER_PASSWORD:owner-dev}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+parallax:
+  # application-service, for GET /internal/v1/rule-config/live (LIVE config → CLI affordability).
+  application:
+    url: ${PARALLAX_APPLICATION_URL:http://localhost:8080}
+  internal-token: ${INTERNAL_TOKEN:internal-dev}
+  # Delinquency job: recompute status from days_past_due; daily at 03:00 UTC.
+  delinquency:
+    cron: ${PARALLAX_DELINQUENCY_CRON:0 0 3 * * *}
+
+# Swagger is exposed only in the dev profile (see application-dev.yml and AccountSecurityConfig).
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

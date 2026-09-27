@@ -41,9 +41,8 @@ public final class DecisionEngine {
             fraudFlags.add(ReasonCode.F04);
         }
 
-        // 2. Ability-to-pay maximum.
-        double residual = in.annualIncome() / 12.0 - in.monthlyHousing() - in.monthlyDebt() - c.livingCost();
-        int atpMax = Math.max(0, (int) Math.floor(residual * c.atpShare() / c.minPayPct() / 100.0) * 100);
+        // 2. Ability-to-pay maximum (shared with account-service's CLI sizing, SPEC §4/§13).
+        int atpMax = Affordability.atpMax(in.annualIncome(), in.monthlyHousing(), in.monthlyDebt(), c);
 
         // 3. Policy checks, always all four, in order P02, P03, P04, P01.
         List<PolicyCheck> policyChecks = new ArrayList<>();
