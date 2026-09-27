@@ -49,12 +49,15 @@ export function useDecisions(params: DecisionsParams) {
   })
 }
 
-export function useApplication(id: string | undefined, opts?: { refetchInterval?: number | false }) {
+export function useApplication(id: string | undefined, opts?: { pollWhilePending?: boolean }) {
   return useQuery({
     queryKey: keys.application(id || ''),
     queryFn: () => apiFetch<Detail>(`/api/v1/applications/${id}`),
     enabled: !!id,
-    refetchInterval: opts?.refetchInterval,
+    // Poll every 3 s while the engine retry job is still deciding an ENGINE_PENDING application.
+    refetchInterval: opts?.pollWhilePending
+      ? (query) => ((query.state.data as Detail | undefined)?.status === 'ENGINE_PENDING' ? 3000 : false)
+      : undefined,
   })
 }
 

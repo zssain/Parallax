@@ -12,3 +12,16 @@ export function fmtTs(iso?: string | null): string {
   if (!iso) return '—'
   return iso.length >= 16 ? iso.slice(0, 10) + ' ' + iso.slice(11, 16) : iso
 }
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+/** "2025-10" → "Oct 2025". */
+export function fmtMonth(ym: string): string {
+  const [y, m] = ym.split('-')
+  return `${MONTHS[Number(m) - 1]} ${y}`
+}
+
+/** PSI status ("stable"/"watch"/"investigate") → text-colour class. */
+export function psiCls(status?: string): string {
+  return status === 'stable' ? 't-ok' : status === 'watch' ? 't-warn' : status === 'investigate' ? 't-bad' : ''
+}
+

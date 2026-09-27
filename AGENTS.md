@@ -71,4 +71,4 @@ Jira key PX. Branches feature/PX-<n>-<slug>. Commits start with "PX-<n>: ".
 - [x] 09 Decide end to end  - [x] 10 Resilience  - [x] 11 Review queue  - [x] 12 Synthetic history
 - [x] 13 Replay  - [x] 14 Governance  - [x] 15 Shadow, drift, overview  - [x] 16 Assistant
 - [x] 17 MCP, evals, skills  - [x] 18 CLI policy, outbox  - [x] 19 Account service
-- [x] 20 Web shell  - [ ] 21 Web workspace  - [ ] 22 Web strategy + lifecycle  - [ ] 23 Release
+- [x] 20 Web shell  - [x] 21 Web workspace  - [ ] 22 Web strategy + lifecycle  - [ ] 23 Release

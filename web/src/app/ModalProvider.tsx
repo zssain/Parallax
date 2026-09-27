@@ -12,6 +12,7 @@ import {
 interface ModalValue {
   openModal: (content: ReactNode, opts?: { locked?: boolean }) => void
   setModalContent: (content: ReactNode) => void
+  setLocked: (locked: boolean) => void
   closeModal: () => void
   isOpen: boolean
 }
@@ -76,7 +77,7 @@ export function ModalProvider({ children }: { children: ReactNode }) {
   }, [open])
 
   return (
-    <Ctx.Provider value={{ openModal, setModalContent, closeModal, isOpen: open }}>
+    <Ctx.Provider value={{ openModal, setModalContent, setLocked, closeModal, isOpen: open }}>
       {children}
       {open && (
         <div
