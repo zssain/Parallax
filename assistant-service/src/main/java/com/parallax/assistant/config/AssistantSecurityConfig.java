@@ -18,14 +18,16 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
 import java.io.IOException;
 import java.util.List;
 
 /**
  * HTTP Basic, stateless security (SPEC §9, §12). The four INTERNAL demo users may reach the assistant;
- * everything under {@code /api/v1/assistant/**} requires an INTERNAL role, the actuator health probe is
- * public, and everything else is denied. Unauthenticated requests get a 401 ProblemDetail.
+ * everything under {@code /api/v1/assistant/**} and the MCP transport endpoints ({@code /sse},
+ * {@code /mcp/message}) requires an INTERNAL role, the actuator health probe is public, and everything
+ * else is denied. Unauthenticated requests get a 401 ProblemDetail.
  */
 @Configuration
 public class AssistantSecurityConfig {
@@ -40,6 +42,13 @@ public class AssistantSecurityConfig {
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers("/actuator/health").permitAll();
                     auth.requestMatchers("/api/v1/assistant/**").hasAnyRole(INTERNAL);
+                    // MCP server transport (SSE + message endpoints): same INTERNAL HTTP Basic as chat,
+                    // so MCP clients authenticate as an INTERNAL user and the tools are read-only. These
+                    // are functional RouterFunction endpoints, so match them by explicit path pattern
+                    // (the default MvcRequestMatcher only resolves @RequestMapping handlers).
+                    auth.requestMatchers(
+                            PathPatternRequestMatcher.withDefaults().matcher("/sse"),
+                            PathPatternRequestMatcher.withDefaults().matcher("/mcp/message")).hasAnyRole(INTERNAL);
                     auth.anyRequest().denyAll();
                 })
                 .httpBasic(basic -> basic.authenticationEntryPoint(entryPoint(objectMapper)))

@@ -63,6 +63,77 @@ Strategy Lab replay, measured 2026-09-26 on this machine:
 - `data-generator/` — synthetic history CLI
 - `docs/` — SPEC, DECISIONS, and the approved UI under `docs/design/`
 
+## AI assistant and MCP
+
+`assistant-service` (port 8083) is a read-only Spring AI agent with seven tools (`getDecision`,
+`getReasonCodes`, `runReplay`, `getReplayReport`, `compareVersions`, `getOverrideStats`, `getDriftReport`).
+Every number in an answer comes from a tool result; masked PII only; no write tool exists. It needs
+`ANTHROPIC_API_KEY` to chat (no key → 503), but the tool catalogue and MCP server run without one.
+
+The same seven tools are exposed over the **Model Context Protocol** (Spring AI MCP server, WebMVC/SSE
+transport): server name `parallax`, SSE endpoint `/sse`, message endpoint `/mcp/message`, behind the same
+INTERNAL HTTP Basic auth as the chat API. The service calls application-service with its own ASSISTANT
+credentials, so MCP clients get read-only access by construction.
+
+### Use Parallax from Claude Desktop
+
+Claude Desktop speaks stdio, so bridge to the HTTP/SSE endpoint with
+[`mcp-remote`](https://www.npmjs.com/package/mcp-remote), passing an `Authorization: Basic …` header for an
+INTERNAL demo user (here `priya.menon@parallax.dev:demo-password`, whose Base64 is
+`cHJpeWEubWVub25AcGFyYWxsYXguZGV2OmRlbW8tcGFzc3dvcmQ=`). Add to `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "parallax": {
+      "command": "npx",
+      "args": [
+        "-y", "mcp-remote",
+        "http://localhost:8083/sse",
+        "--header", "Authorization: Basic cHJpeWEubWVub25AcGFyYWxsYXguZGV2OmRlbW8tcGFzc3dvcmQ="
+      ]
+    }
+  }
+}
+```
+
+### List the tools over the protocol with curl
+
+The SSE transport replies on the stream, so open `/sse` (which returns a per-session `/mcp/message`
+endpoint), then POST the JSON-RPC handshake and `tools/list` to that endpoint:
+
+```bash
+AUTH='priya.menon@parallax.dev:demo-password'
+# 1) open the stream; the first event carries the session message endpoint
+curl -sN -u "$AUTH" http://localhost:8083/sse &      # prints: event:endpoint / data:/mcp/message?sessionId=…
+MSG='/mcp/message?sessionId=<from the endpoint event>'
+# 2) handshake, then list tools (responses arrive on the stream above)
+curl -s -u "$AUTH" -H 'Content-Type: application/json' http://localhost:8083$MSG \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"curl","version":"1.0"}}}'
+curl -s -u "$AUTH" -H 'Content-Type: application/json' http://localhost:8083$MSG \
+  -d '{"jsonrpc":"2.0","method":"notifications/initialized"}'
+curl -s -u "$AUTH" -H 'Content-Type: application/json' http://localhost:8083$MSG \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
+```
+
+The `tools/list` result on the stream contains exactly the seven tool names above. `McpToolsIT` asserts the
+same list by driving a real MCP client through this handshake.
+
+### Assistant eval set
+
+`evals/assistant-evals.yaml` holds 15 questions checked against live data. Run them against a seeded,
+running stack (needs `ANTHROPIC_API_KEY` so the assistant is configured, and `PARALLAX_BASE_URL` for
+application-service):
+
+```bash
+ANTHROPIC_API_KEY=… PARALLAX_BASE_URL=http://localhost:8080 \
+  ./mvnw -pl assistant-service verify -Dgroups=evals
+```
+
+It resolves each item's fact references from application-service, asks the assistant, checks the tools used
+and the facts present, and writes `evals/results/<date>.md`. It is excluded from the default build and is
+skipped (never failed) when those env vars are absent.
+
 ## Bureau mock
 
 `bureau-mock` (port 8082) is a synthetic SOAP credit bureau. All data is synthetic; a report is
