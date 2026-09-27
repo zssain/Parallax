@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * {@code scripts}). No model key is needed: the tool catalogue never calls the LLM.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@TestPropertySource(properties = "spring.ai.anthropic.api-key=")
+@TestPropertySource(properties = "spring.ai.openai.api-key=")
 class McpToolsIT {
 
     private static final List<String> SEVEN_TOOLS = List.of(

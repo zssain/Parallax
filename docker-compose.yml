@@ -140,8 +140,8 @@ services:
       PARALLAX_APPLICATION_URL: http://application-service:8080
       ASSISTANT_USERNAME: ${ASSISTANT_USERNAME:-assistant@parallax.dev}
       ASSISTANT_PASSWORD: ${ASSISTANT_PASSWORD:-assistant-dev}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      PARALLAX_ASSISTANT_MODEL: ${PARALLAX_ASSISTANT_MODEL:-claude-sonnet-5}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      PARALLAX_ASSISTANT_MODEL: ${PARALLAX_ASSISTANT_MODEL:-gpt-4o-mini}
     healthcheck:
       test: ["CMD-SHELL", "curl -fs http://localhost:8083/actuator/health || exit 1"]
       interval: 10s

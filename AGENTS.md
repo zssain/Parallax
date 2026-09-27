@@ -13,7 +13,7 @@ re-runs history under candidate rule versions). Headline feature: Strategy Lab. 
 | bureau-mock | 8082 | SOAP credit bureau with fault injection |
 | decision-service | 8081 | Thin REST wrapper around the engine |
 | application-service | 8080 | Intake, idempotency, orchestration, ledger, review queue, Strategy Lab, drift |
-| assistant-service | 8083 | Read-only Spring AI agent (7 tools, Anthropic) + MCP server (SSE /sse, msg /mcp/message) |
+| assistant-service | 8083 | Read-only Spring AI agent (7 tools, OpenAI) + MCP server (SSE /sse, msg /mcp/message) |
 | data-generator | — | Synthetic history CLI + library |
 | account-service | 8084 | Accounts, statements, credit-line increases (CLI), delinquency and collections |
 | web | 5173 | React UI (Prompt 20) |
@@ -50,7 +50,7 @@ re-runs history under candidate rule versions). Headline feature: Strategy Lab. 
   credentials, so MCP clients are read-only by construction. See "Use Parallax from Claude Desktop" in the
   README.
 - Eval set: evals/assistant-evals.yaml (15 items); run with `./mvnw -pl assistant-service verify -Dgroups=evals`
-  against a seeded stack with ANTHROPIC_API_KEY and PARALLAX_BASE_URL set (excluded from the default build).
+  against a seeded stack with OPENAI_API_KEY and PARALLAX_BASE_URL set (excluded from the default build).
 - Skills for coding agents live in skills/<name>/SKILL.md (also linked at .claude/skills):
   add-scorecard-attribute, add-policy-rule, run-strategy-replay. scripts/check-skill-paths.sh checks every
   path they cite exists. How Parallax itself was built with an AI agent: docs/ai-workflow.md.

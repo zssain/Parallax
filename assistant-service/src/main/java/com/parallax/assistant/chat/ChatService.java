@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.parallax.assistant.config.AssistantProperties;
 import com.parallax.assistant.tools.ParallaxToolRegistry;
-import org.springframework.ai.anthropic.AnthropicChatOptions;
+import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
@@ -74,7 +74,7 @@ public class ChatService {
         UserMessage userMessage = new UserMessage(userText);
         messages.add(userMessage);
 
-        AnthropicChatOptions options = AnthropicChatOptions.builder()
+        OpenAiChatOptions options = OpenAiChatOptions.builder()
                 .model(properties.getAssistant().getModel())
                 .maxTokens(properties.getAssistant().getMaxTokens())
                 .toolCallbacks(List.of(registry.callbacks()))

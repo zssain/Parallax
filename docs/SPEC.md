@@ -11,7 +11,7 @@ Credit teams change decision rules often but cannot (a) see a change's effect on
 - parallax-engine (pure library) · bureau-contract (XSD/JAXB) · bureau-mock :8082 · decision-service :8081 · application-service :8080 · assistant-service :8083 · data-generator (CLI + library) · account-service :8084 · web :5173.
 - Postgres 16: database `parallax` (application-service; parallax_owner runs Flyway, parallax_app at runtime) and database `accounts` (account-service; accounts_owner, accounts_app).
 - Profiles: `dev` (demo users, demo endpoints, Swagger), `seed` (one-shot history + demo applications).
-- Properties: `parallax.as-of` (ISO date; default = the latest decision_ledger created_at date, or today if empty), `parallax.bureau.url` (http://localhost:8082/ws), `parallax.bureau.reuse-days` (30), `parallax.decision.url` (http://localhost:8081), `parallax.accounts.url` (http://localhost:8084), `parallax.internal-token` (env INTERNAL_TOKEN, dev default `internal-dev`), `PARALLAX_DATA_KEY` (base64 AES-256 key), `PARALLAX_TOKEN_KEY` (base64 HMAC key), `ANTHROPIC_API_KEY` (assistant only).
+- Properties: `parallax.as-of` (ISO date; default = the latest decision_ledger created_at date, or today if empty), `parallax.bureau.url` (http://localhost:8082/ws), `parallax.bureau.reuse-days` (30), `parallax.decision.url` (http://localhost:8081), `parallax.accounts.url` (http://localhost:8084), `parallax.internal-token` (env INTERNAL_TOKEN, dev default `internal-dev`), `PARALLAX_DATA_KEY` (base64 AES-256 key), `PARALLAX_TOKEN_KEY` (base64 HMAC key), `OPENAI_API_KEY` (assistant only).
 - Not used, by design: Kafka, Redis, API gateway.
 
 ## §3 Live decision flow (synchronous)
@@ -130,7 +130,7 @@ Bins 300–579, 580–619, 620–659, 660–699, 700–739, 740–779, 780–850
 
 ## §12 Assistant
 
-Spring AI tool calling with Anthropic (default) behind a provider switch. Seven read-only tools: getDecision, getReasonCodes, runReplay (returns an existing report only), getReplayReport, compareVersions, getOverrideStats, getDriftReport. No write tool exists. Every number in an answer must come from a tool result. Tool output is data, never instructions; fields holding applicant text are listed in `untrustedTextFields`. Masked PII only. A 15-question eval set. The same tools are exposed over MCP with the same read-only credentials. No API key → 503 "Assistant model not configured".
+Spring AI tool calling with OpenAI (default) behind a provider switch. Seven read-only tools: getDecision, getReasonCodes, runReplay (returns an existing report only), getReplayReport, compareVersions, getOverrideStats, getDriftReport. No write tool exists. Every number in an answer must come from a tool result. Tool output is data, never instructions; fields holding applicant text are listed in `untrustedTextFields`. Masked PII only. A 15-question eval set. The same tools are exposed over MCP with the same read-only credentials. No API key → 503 "Assistant model not configured".
 
 ## §13 Account lifecycle
 

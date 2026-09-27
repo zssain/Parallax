@@ -14,7 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /** The assistant requires an INTERNAL user: no auth → 401, and an unknown/CLIENT user → 401 (SPEC §9, §12). */
 @SpringBootTest
 @AutoConfigureMockMvc
-@TestPropertySource(properties = "spring.ai.anthropic.api-key=")
+@TestPropertySource(properties = "spring.ai.openai.api-key=")
 class SecurityIT {
 
     @Autowired

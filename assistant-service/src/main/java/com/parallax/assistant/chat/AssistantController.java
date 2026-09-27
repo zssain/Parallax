@@ -27,7 +27,7 @@ public class AssistantController {
 
     @GetMapping("/api/v1/assistant/status")
     public ChatViews.Status status() {
-        return new ChatViews.Status(chatService.configured(), "anthropic", properties.getAssistant().getModel());
+        return new ChatViews.Status(chatService.configured(), "openai", properties.getAssistant().getModel());
     }
 
     @GetMapping("/api/v1/assistant/tools")

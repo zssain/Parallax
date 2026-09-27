@@ -90,8 +90,8 @@ assistant-service + account-service → web. First boot builds all images and se
 so give it a few minutes. Then open **http://localhost:5173**.
 
 Set `SEED_COUNT=100000` in `.env` to reproduce the performance numbers (slower first boot).
-The AI assistant is optional: leave `ANTHROPIC_API_KEY` blank and the assistant shows a
-"model not configured" card; set a key (and a valid `PARALLAX_ASSISTANT_MODEL`) to enable chat.
+The AI assistant is optional: leave `OPENAI_API_KEY` blank and the assistant shows a
+"model not configured" card; set a key (and optionally `PARALLAX_ASSISTANT_MODEL`) to enable chat.
 
 ### Demo logins (all password `demo-password`)
 
@@ -222,7 +222,7 @@ contract files the agent must read first:
 `assistant-service` (port 8083) is a read-only Spring AI agent with seven tools (`getDecision`,
 `getReasonCodes`, `runReplay`, `getReplayReport`, `compareVersions`, `getOverrideStats`,
 `getDriftReport`). Every number in an answer comes from a tool result; masked PII only; no write
-tool exists. It needs `ANTHROPIC_API_KEY` to chat (no key → 503), but the tool catalogue and MCP
+tool exists. It needs `OPENAI_API_KEY` to chat (no key → 503), but the tool catalogue and MCP
 server run without one.
 
 The same seven tools are exposed over the **Model Context Protocol** (Spring AI MCP server,
@@ -278,11 +278,11 @@ same list by driving a real MCP client through this handshake.
 ### Assistant eval set
 
 `evals/assistant-evals.yaml` holds 15 questions checked against live data. Run them against a seeded,
-running stack (needs `ANTHROPIC_API_KEY` so the assistant is configured, and `PARALLAX_BASE_URL` for
+running stack (needs `OPENAI_API_KEY` so the assistant is configured, and `PARALLAX_BASE_URL` for
 application-service):
 
 ```bash
-ANTHROPIC_API_KEY=… PARALLAX_BASE_URL=http://localhost:8080 \
+OPENAI_API_KEY=… PARALLAX_BASE_URL=http://localhost:8080 \
   ./mvnw -pl assistant-service verify -Dgroups=evals
 ```
 

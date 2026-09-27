@@ -19,7 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /** With a blank API key the service starts, reports not-configured, and refuses chat with 503 (SPEC §12). */
 @SpringBootTest
 @AutoConfigureMockMvc
-@TestPropertySource(properties = "spring.ai.anthropic.api-key=")
+@TestPropertySource(properties = "spring.ai.openai.api-key=")
 class NotConfiguredIT {
 
     private static final String USER = "aditi.rao@parallax.dev";
@@ -35,7 +35,7 @@ class NotConfiguredIT {
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
 
         assertThat(body.get("configured").asBoolean()).isFalse();
-        assertThat(body.get("provider").asText()).isEqualTo("anthropic");
+        assertThat(body.get("provider").asText()).isEqualTo("openai");
     }
 
     @Test

@@ -32,10 +32,10 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
-        <!-- Spring AI Anthropic chat starter (default provider); version from the parent spring-ai-bom. -->
+        <!-- Spring AI OpenAI chat starter (default provider); version from the parent spring-ai-bom. -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-starter-model-anthropic</artifactId>
+            <artifactId>spring-ai-starter-model-openai</artifactId>
         </dependency>
         <!-- Spring AI MCP server, WebMVC/SSE transport: exposes the same read-only tools over MCP
              (SPEC §12). Brings the MCP SDK (mcp-core), whose client transport the McpToolsIT reuses. -->
@@ -75,7 +75,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
             <!-- The eval set (EvalRunner, JUnit tag "evals") is excluded from the default build; it
-                 hits a live Anthropic-backed stack. Run it with `-Dgroups=evals` (the evals profile). -->
+                 hits a live OpenAI-backed stack. Run it with `-Dgroups=evals` (the evals profile). -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
@@ -88,7 +88,7 @@
 
     <profiles>
         <!-- Activated by `-Dgroups=evals`: clears the default exclusion so only the eval IT runs.
-             The eval IT is itself gated on ANTHROPIC_API_KEY + PARALLAX_BASE_URL, so it is skipped
+             The eval IT is itself gated on OPENAI_API_KEY + PARALLAX_BASE_URL, so it is skipped
              (never failed) when the stack is not up. -->
         <profile>
             <id>evals</id>

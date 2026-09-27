@@ -133,7 +133,7 @@ export function Assistant() {
             {typing && <div className="msg a">…</div>}
             {!configured && (
               <div className="msg a">
-                The assistant model is not configured. Set ANTHROPIC_API_KEY for assistant-service and restart it.
+                The assistant model is not configured. Set OPENAI_API_KEY for assistant-service and restart it.
               </div>
             )}
           </div>

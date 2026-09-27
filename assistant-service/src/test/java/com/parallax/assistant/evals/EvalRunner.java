@@ -25,7 +25,7 @@ import java.util.Objects;
 /**
  * The 15-question assistant eval set (SPEC §12). Tagged {@code evals} and excluded from the default
  * build; run it with {@code ./mvnw -pl assistant-service verify -Dgroups=evals} against a seeded, running
- * stack, with {@code ANTHROPIC_API_KEY} (so the assistant is configured) and {@code PARALLAX_BASE_URL}
+ * stack, with {@code OPENAI_API_KEY} (so the assistant is configured) and {@code PARALLAX_BASE_URL}
  * (application-service) set. It is gated on those env vars, so it is skipped — never failed — otherwise.
  *
  * <p>For each item it resolves every fact reference in {@code must_include} to the live value by calling
@@ -36,7 +36,7 @@ import java.util.Objects;
  * to {@code evals/results/<yyyy-MM-dd>.md} and a summary is printed.
  */
 @Tag("evals")
-@EnabledIfEnvironmentVariable(named = "ANTHROPIC_API_KEY", matches = ".+")
+@EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
 @EnabledIfEnvironmentVariable(named = "PARALLAX_BASE_URL", matches = ".+")
 class EvalRunner {
 

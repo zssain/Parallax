@@ -1,7 +1,7 @@
 name: Assistant evals
 
 # Runs the 15-item assistant eval set against a seeded stack. Manual only: it calls a
-# real LLM and needs the ANTHROPIC_API_KEY repository secret. No key -> the runner is
+# real LLM and needs the OPENAI_API_KEY repository secret. No key -> the runner is
 # disabled (@EnabledIfEnvironmentVariable), so this never runs silently for free.
 on:
   workflow_dispatch:
@@ -37,7 +37,7 @@ jobs:
 
       - name: Run evals
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           PARALLAX_BASE_URL: http://localhost:8080
         run: ./mvnw -B -pl assistant-service verify -Dgroups=evals
 
