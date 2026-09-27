@@ -1,0 +1,15 @@
+/* Additions for the two §16 LIFECYCLE screens (Accounts, Collections). The LIFECYCLE nav section
+   itself reuses the prototype's .navsec/.navi with no new rules. Everything below is only what the
+   new screens need beyond the prototype's card language; each rule is listed in the Prompt 20 report.
+
+   1. .payhist / .payhist .cell(.ok/.bad) / .payhist .mo — the Accounts "Payment history" 12-cell strip.
+   2. .pill.hi / .pill.med / .pill.low — the Collections priority pill colours (HIGH/MEDIUM/LOW). */
+.payhist { display: grid; grid-template-columns: repeat(12, 1fr); gap: 8px; margin: 10px 0 4px; }
+.payhist .col { display: flex; flex-direction: column; align-items: stretch; }
+.payhist .cell { height: 34px; border-radius: 8px; background: var(--panel2); border: 1px solid var(--line); display: grid; place-items: center; font-weight: 700; font-size: 12px; color: var(--muted); }
+.payhist .cell.ok { background: var(--okbg); color: var(--ok); border-color: transparent; }
+.payhist .cell.bad { background: var(--badbg); color: var(--bad); border-color: transparent; }
+.payhist .mo { font-size: 10px; text-align: center; color: var(--muted); margin-top: 5px; }
+.pill.hi { color: var(--bad); }
+.pill.med { color: var(--warn); }
+.pill.low { color: var(--muted); }

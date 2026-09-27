@@ -49,6 +49,12 @@
             <artifactId>parallax-engine</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- OpenAPI /v3/api-docs so the web app can generate typed clients (Prompt 20). Version
+             from the parent dependencyManagement. -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -41,6 +41,10 @@ public class AssistantSecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers("/actuator/health").permitAll();
+                    // OpenAPI descriptor + Swagger UI are public so the web app can generate its typed
+                    // client (Prompt 20). Read-only metadata, no application data.
+                    auth.requestMatchers("/v3/api-docs/**", "/v3/api-docs.yaml", "/swagger-ui/**",
+                            "/swagger-ui.html").permitAll();
                     auth.requestMatchers("/api/v1/assistant/**").hasAnyRole(INTERNAL);
                     // MCP server transport (SSE + message endpoints): same INTERNAL HTTP Basic as chat,
                     // so MCP clients authenticate as an INTERNAL user and the tools are read-only. These
